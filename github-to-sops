@@ -114,8 +114,6 @@ def fetch_github_ssh_keys(contributors: List[str]):
     that the user doesn't have if the key_types parameter is set.
 
     :param contributors: List of GitHub usernames.
-    :param key_types: The types of SSH keys to fetch (e.g., ['ssh-ed25519', 'ssh-rsa']) or None for all keys.
-    :param convert_to_age: Whether to convert the keys to age keys.
     """
     keys_by_user_and_type = {}
     for username in contributors:
@@ -132,8 +130,18 @@ def fetch_github_ssh_keys(contributors: List[str]):
             continue
     return keys_by_user_and_type
 
-def print_keys(keys_by_user_and_type: dict, format: str, accepted_key_types: Optional[Set[str]] = None):
+def print_keys(keys_by_user_and_type: dict, output_format: str, accepted_key_types: Optional[Set[str]] = None):
+    """
+    Print keys in useful formats
+
+    :param key_types: The types of SSH keys to fetch (e.g., ['ssh-ed25519', 'ssh-rsa']) or None for all keys.
+    :param convert_to_age: Whether to convert the keys to age keys.
+    """
     printed_header = False
+    if output_format == 'json':
+        print(json.dumps(keys_by_user_and_type, indent=2))
+        return
+
     for username,user_keys in keys_by_user_and_type.items():
         if accepted_key_types is not None:
             accepted_keys = set(user_keys.keys()).intersection(accepted_key_types)
@@ -144,12 +152,12 @@ def print_keys(keys_by_user_and_type: dict, format: str, accepted_key_types: Opt
         for key_type in accepted_keys:
             key = user_keys[key_type]
             #if convert_to_age:
-            if format in ['ssh-to-age', 'sops']:
+            if output_format in ['ssh-to-age', 'sops']:
                 key = convert_key_to_age(f"{key_type} {key}")
                 if not key:
                     print(f"Skipped converting {key_type} key for user {username} to age key with ssh-to-age", file=sys.stderr)
                     continue
-                if format =='sops':
+                if output_format =='sops':
                     if not printed_header:
                         print(GENERATED_MSG)
                         print("creation_rules:")
@@ -209,7 +217,7 @@ def main():
     parser.add_argument('--github-users', type=comma_separated_list, help="Comma-separated list of GitHub usernames to fetch keys for.")
     parser.add_argument('--key-types', type=comma_separated_list, default=None, help="Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.")
     # Supported conversions with validation
-    supported_conversions = ['authorized_keys', 'ssh-to-age', 'sops']
+    supported_conversions = ['authorized_keys', 'ssh-to-age', 'sops', 'json']
     parser.add_argument('--format', default=supported_conversions[0], type=str, choices=supported_conversions,
                     help=f"Output/convert keys using the specified format. Supported formats: "
                     f"{', '.join(supported_conversions)}. For example, use '--format "

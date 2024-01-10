@@ -70,7 +70,7 @@ options:
                         Comma-separated list of GitHub usernames to fetch keys for.
   --key-types KEY_TYPES
                         Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.
-  --format {authorized_keys,ssh-to-age,sops}
+  --format {authorized_keys,ssh-to-age,sops,json}
                         Output/convert keys using the specified format. Supported formats: authorized_keys, ssh-to-age, sops. For example, use '--format ssh-to-age' to convert SSH keys to age keys.
 
 Example invocations: `./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops` `./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys` `./github-to-sops --local-github-
