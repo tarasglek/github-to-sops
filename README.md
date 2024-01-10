@@ -27,16 +27,56 @@ Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 
 
 ## Examples:
 
-For generating sops from github:
+### Example workflow for secrets with github
 
+generate keys
 ```bash
-./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops
+./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops > .sops.yaml
+```
+lets see
+```bash
+cat .sops.yaml
+```
+```yaml
 creation_rules:
   - key_groups:
       - age:
         - age19j4d6v9j7rx5fs629fu387qz4zmlpsqjexa4s08tkfrrmfdl5cwqjlaupd # humphd
         - age13runq29jhy9kfpaegczrzttykerswh0qprq59msgd754yermtfmsa3hwg2 # tarasglek
 ```
+
+Put a sample secret in yaml
+
+```bash
+echo -e "secrets:\n  SECRET_KEY: dontlook" | sops --input-type yaml --output-type yaml  -e /dev/stdin > secrets.enc.yaml
+```
+Lets take a peek
+```bash
+head -n 9 secrets.enc.yaml
+```
+```yaml
+secrets:
+    SECRET_KEY: ENC[AES256_GCM,data:MKKR6B0h1iA=,iv:KegjC62NQxich1dtodVF3aVnchf/fB+KQbtETh+4CaY=,tag:2+5mk4YMKKxLqaCOpZVNSA==,type:str]
+sops:
+    kms: []
+    gcp_kms: []
+    azure_kv: []
+    hc_vault: []
+    age:
+        - recipient: age19j4d6v9j7rx5fs629fu387qz4zmlpsqjexa4s08tkfrrmfdl5cwqjlaupd
+```
+^ is safe to commit!
+
+
+Lets extract our secret in a way that's useful for automation
+```bash
+sops --extract '["secrets"]["SECRET_KEY"]' -d secrets.env.yaml
+```
+```
+dontlook
+```
+
+### Misc Examples
 
 Generate keys from a local github checkout and add ssh hosts to it:
 
