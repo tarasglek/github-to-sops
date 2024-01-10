@@ -20,8 +20,10 @@ This generates a nice .sops.yaml file with comments indicating where the keys ca
 Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 after I got sick of devising a secure secret distribution scheme for every small project.
 
 ## Contributions Welcome
+* Tests
 * Would be nice to `pip install github-to-sops`
-* Main thing that would be nice to add is ACLs and an integrity check to keys being used.
+* Binary build for python-less environments
+* Would be nice to add is ACLs and an integrity check to keys being used.
 
 ## Examples:
 
