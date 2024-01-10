@@ -17,7 +17,11 @@ SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this
 
 This generates a nice .sops.yaml file with comments indicating where the keys came from to make key rotation easier.
 
-Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 after I got sick of devising a secure secret distribution scheme for every small project. Main thing that would be nice to add is ACLs and an integrity check to keys being used.
+Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 after I got sick of devising a secure secret distribution scheme for every small project.
+
+## Contributions Welcome
+* Would be nice to `pip install github-to-sops`
+* Main thing that would be nice to add is ACLs and an integrity check to keys being used.
 
 ## Examples:
 
