@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""
+This script fetches SSH keys of GitHub repository contributors.
+"""
+
+import argparse
+import json
+import os
+import sys
+from typing import Optional, List
+from urllib import request, error
+
+GITHUB_API_BASE_URL = 'https://api.github.com/repos'
+
+
+def get_api_url_from_git(repo_path: str) -> Optional[str]:
+    """
+    Extract the GitHub API URL from the local git repository config.
+
+    :param repo_path: Path to the local git repository.
+    :return: GitHub API URL or None if not found.
+    """
+    config_path = os.path.join(repo_path, '.git', 'config')
+    try:
+        with open(config_path, 'r') as git_config:
+            for line in git_config:
+                if 'url' in line:
+                    git_url = line.split('=')[1].strip()
+                    if git_url.startswith('https://github.com/'):
+                        return git_url.replace('github.com', GITHUB_API_BASE_URL, 1)
+                    elif git_url.startswith('git@github.com:'):
+                        return (git_url.replace('git@github.com:', GITHUB_API_BASE_URL + '/', 1)
+                                .rstrip('.git'))
+    except FileNotFoundError:
+        print(f"Error: {config_path} not found.", file=sys.stderr)
+    return None
+
+
+def get_api_url(repo_url: Optional[str], local_repo: Optional[str]) -> str:
+    """
+    Determine the GitHub API URL from either a repository URL or a local repository path.
+
+    :param repo_url: GitHub repository URL.
+    :param local_repo: Path to local Git repository.
+    :return: GitHub API URL.
+    :raises ValueError: If neither a repository URL nor a local repository path is provided.
+    """
+    if repo_url:
+        return repo_url.replace('github.com', GITHUB_API_BASE_URL, 1)
+    elif local_repo:
+        api_url = get_api_url_from_git(local_repo)
+        if api_url:
+            return api_url
+        else:
+            raise ValueError("Unable to determine the repository URL from the local Git repository.")
+    else:
+        raise ValueError("Either a repository URL or a local repository path must be provided.")
+
+
+def github_request(request_url: str):
+    """
+    Make a request to the GitHub API.
+    This injects the GitHub API token environment variable into the request if present.
+
+    :param request_url: URL to make the request to.
+    :return: Response from the GitHub API.
+    """
+    req = request.Request(request_url)
+    github_token = os.getenv('GITHUB_TOKEN')
+    if github_token:
+        auth_header = f"token {github_token}"
+        req.add_header('Authorization', auth_header)
+    return request.urlopen(req)
+
+
+def fetch_contributors(api_url: str) -> List[str]:
+    """
+    Fetch the list of contributors for a GitHub repository.
+
+    :param api_url: GitHub API URL for the repository.
+    :return: List of contributor usernames.
+    """
+    try:
+        with github_request(f"{api_url}/contributors") as response:
+            contributors = json.load(response)
+            return [contributor['login'] for contributor in contributors]
+    except error.HTTPError as e:
+        print(f"HTTP Error: {e.code} {e.reason}", file=sys.stderr)
+        return []
+
+
+def fetch_and_output_ssh_keys(contributors: List[str]):
+    """
+    Fetch and output the ssh-ed25519 keys for a list of GitHub users.
+
+    :param contributors: List of GitHub usernames.
+    """
+    for username in contributors:
+        try:
+            with github_request(f"https://github.com/{username}.keys") as response:
+                keys = response.read().decode().splitlines()
+                ed25519_keys = [key for key in keys if key.startswith('ssh-ed25519')]
+                if not ed25519_keys:
+                    print(f"User {username} does not have ssh-ed25519 keys.", file=sys.stderr)
+                else:
+                    for key in ed25519_keys:
+                        print(f"{key} {username}")
+        except error.HTTPError as e:
+            print(f"HTTP Error: {e.code} {e.reason} for user {username}", file=sys.stderr)
+
+
+def main(api_url: str):
+    """
+    Main function to fetch and output SSH keys of GitHub repository contributors.
+
+    :param api_url: GitHub API URL for the repository.
+    """
+    contributors = fetch_contributors(api_url)
+
+    if not contributors:
+        print("No contributors found or error fetching contributors.", file=sys.stderr)
+        sys.exit(1)
+
+    fetch_and_output_ssh_keys(contributors)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Fetch SSH keys of GitHub repository contributors.")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-u', '--github-url', help="GitHub repository URL.")
+    group.add_argument('-l', '--local-checkout', help="Path to local Git repository.")
+    args = parser.parse_args()
+
+    main(get_api_url(args.github_url, args.local_checkout))
