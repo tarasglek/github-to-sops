@@ -8,10 +8,12 @@ This makes it easy to setup [SOPS](https://github.com/getsops/sops) as a lightwe
 
 SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this term and solution for it) pattern where all secrets for github actions are stored in [Github Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) such that nobody can repro stuff locally. With sops one can give github actions a single age private key and share all the development keys with rest of team on equal footing with CI/CD env.
 
+## Requirements
+
+* Python3
+* https://github.com/Mic92/ssh-to-age/ (until the [SOPS ssh backend](https://github.com/getsops/sops/pull/1134) lands).
+
 ## Implementation
-
-
-I use https://github.com/Mic92/ssh-to-age/ (until the [sops ssh backend](https://github.com/getsops/sops/pull/1134) lands).
 
 This generates a nice .sops.yaml file with comments indicating where the keys came from to make key rotation easier.
 
