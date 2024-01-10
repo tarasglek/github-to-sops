@@ -8,10 +8,10 @@ import json
 import os
 import sys
 import subprocess
-from typing import Optional, List
+from typing import Optional, List, Set
 from urllib import request, error
 
-GITHUB_API_BASE_URL = 'https://api.github.com/repos'
+GITHUB_API_BASE_URL = 'api.github.com/repos'
 
 
 def get_api_url_from_git(repo_path: str) -> Optional[str]:
@@ -46,16 +46,17 @@ def get_api_url(repo_url: Optional[str], local_repo: Optional[str]) -> str:
     :return: GitHub API URL.
     :raises ValueError: If neither a repository URL nor a local repository path is provided.
     """
+    api_url = None
     if repo_url:
-        return repo_url.replace('github.com', GITHUB_API_BASE_URL, 1)
+        api_url = repo_url.replace('github.com', GITHUB_API_BASE_URL, 1)
     elif local_repo:
         api_url = get_api_url_from_git(local_repo)
-        if api_url:
-            return api_url
-        else:
-            raise ValueError("Unable to determine the repository URL from the local Git repository.")
+    if api_url:
+        if not api_url.startswith("https://"):
+            api_url = f"https://{api_url}"
+        return api_url
     else:
-        raise ValueError("Either a repository URL or a local repository path must be provided.")
+        raise ValueError("Unable to determine the repository URL from the local Git repository.")
 
 
 def github_request(request_url: str):
@@ -89,7 +90,6 @@ def fetch_contributors(api_url: str) -> List[str]:
         print(f"HTTP Error: {e.code} {e.reason}", file=sys.stderr)
         return []
 
-
 def convert_key_to_age(key: str) -> Optional[str]:
     """
     Convert an SSH key to an age key using ssh-to-age.
@@ -99,61 +99,99 @@ def convert_key_to_age(key: str) -> Optional[str]:
     """
     try:
         result = subprocess.run(
-            ['ssh-to-age'], input=key, capture_output=True, text=True
+            ['ssh-to-age'], input=key, stdout=subprocess.PIPE, text=True, check=True
         )
-        if result.returncode == 0:
-            return result.stdout.strip()
-        else:
-            print(f"Error converting key: {result.stderr}", file=sys.stderr)
-            return None
+        return result.stdout.strip()
     except Exception as e:
         print(f"Error running ssh-to-age: {e}", file=sys.stderr)
-        return None
+    return None
 
 
-def fetch_and_output_ssh_keys(contributors: List[str], key_type: str, convert_to_age: bool):
+def fetch_and_output_ssh_keys(contributors: List[str], format: str, accepted_key_types: Optional[Set[str]] = None):
     """
-    Fetch and output the specified type of SSH keys for a list of GitHub users.
-    Optionally convert the keys to age keys using ssh-to-age.
+    Fetch and output the specified types of SSH keys for a list of GitHub users.
+    Optionally convert the keys to age keys using ssh-to-age. Output key types
+    that the user doesn't have if the key_types parameter is set.
 
     :param contributors: List of GitHub usernames.
-    :param key_type: The type of SSH key to fetch (e.g., 'ssh-ed25519').
+    :param key_types: The types of SSH keys to fetch (e.g., ['ssh-ed25519', 'ssh-rsa']) or None for all keys.
     :param convert_to_age: Whether to convert the keys to age keys.
     """
+    keys_by_user_and_type = {}
     for username in contributors:
+        user_keys = keys_by_user_and_type.get(username, {})
         try:
             with github_request(f"https://github.com/{username}.keys") as response:
-                keys = response.read().decode().splitlines()
-                filtered_keys = [key for key in keys if key.startswith(key_type)]
-                if not filtered_keys:
-                    print(f"User {username} does not have {key_type} keys.", file=sys.stderr)
-                else:
-                    for key in filtered_keys:
-                        if convert_to_age:
-                            age_key = convert_key_to_age(key)
-                            if age_key:
-                                print(f"{age_key} {username}")
-                        else:
-                            print(f"{key} {username}")
+                lines = response.read().decode().strip().splitlines()
+                for line in lines:
+                    key_type, key = line.split(' ')
+                    user_keys[key_type] = key
+                    keys_by_user_and_type[username] = user_keys
         except error.HTTPError as e:
             print(f"HTTP Error: {e.code} {e.reason} for user {username}", file=sys.stderr)
+            continue
+    printed_header = False
+    for username,user_keys in keys_by_user_and_type.items():
+        if accepted_key_types is not None:
+            accepted_keys = set(user_keys.keys()).intersection(accepted_key_types)
+        else:
+            accepted_keys = user_keys.keys()
+        if not accepted_keys:
+            print(f"User {username} does not have any of the accepted key types: {','.join(list(accepted_key_types))}.", file=sys.stderr)
+        for key_type in accepted_keys:
+            key = user_keys[key_type]
+            #if convert_to_age:
+            if format in ['ssh-to-age', 'sops']:
+                key = convert_key_to_age(f"{key_type} {key}")
+                if not key:
+                    print(f"Skipped converting {key_type} key for user {username} to age key with ssh-to-age", file=sys.stderr)
+                    continue
+                if format =='sops':
+                    if not printed_header:
+                        print("creation_rules:")
+                        print("  - key_groups:")
+                        print("      - age:")
+                        printed_header = True
+                    print(f"        - {key} # {username}")
+                else:
+                    print(f"{key}")
+            else:
+                print(f"{key_type} {key} {username}")
 
+def is_tool_available(name):
+    """Check if a tool is available on the system."""
+    try:
+        subprocess.run([name, '--version'], stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, check=True)
+        return True
+    except (OSError, subprocess.CalledProcessError):
+        return False
+
+def comma_separated_list(string) -> Set[str]:
+    return set(string.split(','))
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Fetch SSH keys of GitHub repository contributors or specified users.")
+    parser = argparse.ArgumentParser(
+        description="Fetch SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
+        epilog="Example invocation: ./github-to-age -g https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops"
+    )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-g', '--github-url', help="GitHub repository URL.")
     group.add_argument('-l', '--local-checkout', help="Path to local Git repository.")
-    parser.add_argument('-u', '--users', nargs='+', help="List of GitHub usernames to fetch keys for.")
-    parser.add_argument('-k', '--key-type', default='ssh-ed25519', help="Type of SSH key to fetch.")
-    parser.add_argument('--enable-ssh-to-age', dest='convert_to_age', action='store_true', help="Convert SSH keys to age keys using ssh-to-age.")
-    parser.add_argument('--disable-ssh-to-age', dest='convert_to_age', action='store_false', help="Do not convert SSH keys to age keys.")
+    parser.add_argument('-u', '--github-users', type=comma_separated_list, help="Comma-separated list of GitHub usernames to fetch keys for.")
+    parser.add_argument('-k', '--key-types', type=comma_separated_list, default=None, help="Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.")
+    # Supported conversions with validation
+    supported_conversions = ['authorized_keys', 'ssh-to-age', 'sops']
+    parser.add_argument('--format', default=supported_conversions[0], type=str, choices=supported_conversions,
+                    help=f"Output/convert keys using the specified format. Supported formats: "
+                    f"{', '.join(supported_conversions)}. For example, use '--format "
+                    f"ssh-to-age' to convert SSH keys to age keys.")
     parser.set_defaults(convert_to_age=False)
     args = parser.parse_args()
 
-    users = args.users if args.users else fetch_contributors(get_api_url(args.github_url, args.local_checkout))
-    if not users:
-        print("No users found or error fetching users.", file=sys.stderr)
+    github_users = args.github_users if args.github_users else fetch_contributors(get_api_url(args.github_url, args.local_checkout))
+    if not github_users:
+        print("No users found or error fetching github users.", file=sys.stderr)
         sys.exit(1)
 
-    fetch_and_output_ssh_keys(users, args.key_type, args.convert_to_age)
+    fetch_and_output_ssh_keys(github_users, args.format, args.key_types)
