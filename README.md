@@ -67,6 +67,10 @@ sops:
 ```
 ^ is safe to commit!
 
+Decrypting secrets using ssh keys
+```
+export SOPS_AGE_KEY=$(ssh-to-age -private-key < ~/.ssh/id_ed25519)
+```
 
 Lets extract our secret in a way that's useful for automation
 ```bash
@@ -75,6 +79,8 @@ sops --extract '["secrets"]["SECRET_KEY"]' -d secrets.env.yaml
 ```
 dontlook
 ```
+
+`sops -i secrets.env.yaml` is useful for interactive editing.
 
 ### Misc Examples
 
