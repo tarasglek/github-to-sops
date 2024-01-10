@@ -1,8 +1,10 @@
 This script enables one to use github as a trusted public key distribution mechanism.
 
-I needed this to make [sops](https://github.com/getsops/sops) easier to use for my https://deepstructure.io and https://chatcraft.org projects.
+I needed github-to-sops to make [sops](https://github.com/getsops/sops) easier to use for my https://deepstructure.io and https://chatcraft.org projects.
 
-It's written for use with sops via the age backend (until the [sops ssh backend](https://github.com/getsops/sops/pull/1134) lands).
+I use https://github.com/Mic92/ssh-to-age/ (until the [sops ssh backend](https://github.com/getsops/sops/pull/1134) lands).
+
+This generates a nice .sops.yaml file with comments indicating where the keys came from to make key rotation easier.
 
 ## Examples:
 
