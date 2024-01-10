@@ -1,6 +1,6 @@
-This script enables one to use github as a trusted public key distribution mechanism. This makes it easy to setup SOPS as a lightweight gitops alternative to AWS Secrets Manager, AWS KMS, Hashicorp Vault.
+This script enables one to use github as a trusted public key distribution mechanism. This makes it easy to setup [SOPS](https://github.com/getsops/sops) as a lightweight gitops alternative to AWS Secrets Manager, AWS KMS, Hashicorp Vault.
 
-I needed github-to-sops to make [sops](https://github.com/getsops/sops) easier to use for my https://deepstructure.io and https://chatcraft.org projects.
+I needed github-to-sops to make SOPS easier to use for my https://deepstructure.io and https://chatcraft.org projects.
 
 I use https://github.com/Mic92/ssh-to-age/ (until the [sops ssh backend](https://github.com/getsops/sops/pull/1134) lands).
 
