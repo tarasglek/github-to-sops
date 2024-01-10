@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-This script fetches SSH keys of GitHub repository contributors.
+Standalone (no-dependencies beyond Python) script fetches SSH keys of GitHub repository contributors and generates SOPS-compatible SSH key files.
 """
 
 import argparse

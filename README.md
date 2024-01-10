@@ -1,10 +1,21 @@
-This script enables one to use github as a trusted public key distribution mechanism. This makes it easy to setup [SOPS](https://github.com/getsops/sops) as a lightweight gitops alternative to AWS Secrets Manager, AWS KMS, Hashicorp Vault.
+This script enables one to use github as a trusted public key distribution mechanism.
+
+## Why?
 
 I needed github-to-sops to make SOPS easier to use for my https://deepstructure.io and https://chatcraft.org projects.
+
+This makes it easy to setup [SOPS](https://github.com/getsops/sops) as a lightweight gitops alternative to AWS Secrets Manager, AWS KMS, Hashicorp Vault.
+
+SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this term and solution for it) pattern where all secrets for github actions are stored in [Github Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) such that nobody can repro stuff locally. With sops one can give github actions a single age private key and share all the development keys with rest of team on equal footing with CI/CD env.
+
+## Implementation
+
 
 I use https://github.com/Mic92/ssh-to-age/ (until the [sops ssh backend](https://github.com/getsops/sops/pull/1134) lands).
 
 This generates a nice .sops.yaml file with comments indicating where the keys came from to make key rotation easier.
+
+Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 after I got sick of devising a secure secret distribution scheme for every small project. Main thing that would be nice to add is ACLs and an integrity check to keys being used.
 
 ## Examples:
 
