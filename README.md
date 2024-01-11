@@ -87,6 +87,7 @@ dontlook
 Generate keys from a local github checkout and add ssh hosts to it:
 
 ```bash
+# note you can also make a "custom" known_hosts with ssh-keyscan 192.168.1.1 > /tmp/known_hosts
 ./github-to-sops --local-github-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519
 creation_rules:
   - key_groups:
