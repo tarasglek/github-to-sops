@@ -206,13 +206,28 @@ def print_keys(
                 print(f"{key_type} {key} {username}")
 
 
-def parse_known_hosts(known_hosts_file, parsed_keys={}):
-    with open(known_hosts_file, "r") as file:
-        for line in file:
+def ssh_keyscan(hosts: List[str], parsed_keys={}):
+    def ssh_keyscan(host: str) -> str:
+        try:
+            # Run the ssh-keyscan command
+            result = subprocess.run(
+                ["ssh-keyscan", host],
+                check=True,
+                stdout=subprocess.PIPE,
+                text=True
+            )
+            # Return the stdout if the command was successful
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"ssh-keyscan failed with exit code {e.returncode}: {e.stderr}")
+
+    def parse_known_hosts_content(known_hosts, parsed_keys={}):
+        for line in known_hosts.splitlines():
             # Skip comments and empty lines
             if line.startswith("#") or line.strip() == "":
                 continue
 
+            # Skip invalid lines
             parts = line.strip().split()
             if len(parts) < 3:
                 continue  # Skip invalid lines
@@ -222,8 +237,12 @@ def parse_known_hosts(known_hosts_file, parsed_keys={}):
             if host not in parsed_keys:
                 parsed_keys[host] = {}
             parsed_keys[host][key_type] = key
-    return parsed_keys
 
+    for host in hosts:
+        known_hosts_log = ssh_keyscan(host)
+        parse_known_hosts_content(known_hosts_log, parsed_keys)
+
+    return parsed_keys
 
 def is_tool_available(name):
     """Check if a tool is available on the system."""
@@ -249,14 +268,16 @@ def main():
         epilog=f"""Example invocations:
 `{sys.argv[0]} --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
 `{sys.argv[0]} --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-`{sys.argv[0]} --local-github-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519`
+`{sys.argv[0]} --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
 """,
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--github-url", help="GitHub repository URL.")
     group.add_argument("--local-github-checkout", help="Path to local Git repository.")
     parser.add_argument(
-        "--known-hosts", help="Path to ssh known hosts to also fetch keys from"
+        "--ssh-hosts",
+        type=comma_separated_list,
+        help="Comma-separated list of ssh servers to fetch public keys from."
     )
     parser.add_argument(
         "--github-users",
@@ -307,12 +328,11 @@ def main():
     keys = {}
     if github_users:
         keys = fetch_github_ssh_keys(github_users)
-    if args.known_hosts:
-        keys = parse_known_hosts(args.known_hosts, keys)
-
+    if args.ssh_hosts:
+        keys = ssh_keyscan(args.ssh_hosts, keys)
     if not keys:
         print(
-            "No users found or error fetching github users and no --known-hosts provided",
+            "No users found or error fetching github users and no --ssh-hosts provided",
             file=sys.stderr,
         )
         sys.exit(1)
