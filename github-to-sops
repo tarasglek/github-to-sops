@@ -37,6 +37,7 @@ def process_template(template, tag, output_fd):
     5. Finds first line after the tag with a different prefix
     6. Prints all other lines to console as they are being scanned
     7. Only does it once, e.g., subsequent tag lines will end up with suffix
+    8. Yields None if no tag was found
     """
     lines = template.split("\n")
     found_tag = False
@@ -62,6 +63,8 @@ def process_template(template, tag, output_fd):
                     continue
                 scan_prefix = None
             output_fd.write(line + "\n")
+    if not found_tag:
+        yield None
 
 def get_api_url_from_git(repo_path: str) -> Optional[str]:
     """
@@ -277,6 +280,29 @@ def is_tool_available(name):
 def comma_separated_list(string) -> Set[str]:
     return set(string.split(","))
 
+def print_keys(template, keys, accepted_key_types, output_format, output_fd):
+    for line_prefix in process_template(template, GITHUB_TO_SOPS_TAG, output_fd):
+        if line_prefix is None:
+            line_prefix = ""
+        print(f"{line_prefix}# {GENERATED_MSG}", file=output_fd)
+        for entry in iterate_keys(keys=keys, accepted_key_types=accepted_key_types):
+            username = entry["username"]
+            key_type = entry["key_type"]
+            key = entry["key"]
+            if output_format in ["ssh-to-age", "sops"]:
+                key = convert_key_to_age(f"{key_type} {key}")
+                if not key:
+                    print(
+                        f"Skipped converting {key_type} key for user {username} to age key with ssh-to-age",
+                        file=sys.stderr,
+                    )
+                    continue
+                if output_format == "sops":
+                    print(f"{line_prefix}- {key} # {username}", file=output_fd)
+                else:
+                    print(f"{key}", file=output_fd)
+            else:
+                print(f"{key_type} {key} {username}", file=output_fd)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -318,6 +344,10 @@ def main():
         f"ssh-to-age' to convert SSH keys to age keys.",
     )
     parser.add_argument(
+        "--inplace-edit",
+        help="Edit SOPS file in-place. This sets --format to sops",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
@@ -352,36 +382,26 @@ def main():
             file=sys.stderr,
         )
         sys.exit(1)
-    output_fd = sys.stdout
-    def output(output_fd, line_prefix=""):
-        for entry in iterate_keys(keys=keys, accepted_key_types=args.key_types):
-            username = entry["username"]
-            key_type = entry["key_type"]
-            key = entry["key"]
-            if args.format in ["ssh-to-age", "sops"]:
-                key = convert_key_to_age(f"{key_type} {key}")
-                if not key:
-                    print(
-                        f"Skipped converting {key_type} key for user {username} to age key with ssh-to-age",
-                        file=sys.stderr,
-                    )
-                    continue
-                if args.format == "sops":
-                    print(f"{line_prefix}- {key} # {username}", file=output_fd)
-                else:
-                    print(f"{key}", file=output_fd)
-            else:
-                print(f"{key_type} {key} {username}", file=output_fd)
-    def output_once_per_template(output_fd):
-        template = ""
-        if args.format == "sops":
-            template = SOPS_TEMPLATE
-        for line_prefix in process_template(template, GITHUB_TO_SOPS_TAG, output_fd):
-            print(f"{line_prefix}# {GENERATED_MSG}", file=output_fd)
-            output(output_fd, line_prefix)
-            return
-        output(output_fd)
-    output_once_per_template(output_fd)
+
+    input_template = ""
+    output_fd=sys.stdout
+    if args.format == "sops":
+        input_template = SOPS_TEMPLATE
+    if args.inplace_edit:
+        args.format = "sops"
+        input_template = open(args.inplace_edit, "r").read()
+        output_fd = open(args.inplace_edit + ".tmp", "w")
+
+    print_keys(
+        template=input_template,
+        keys=keys,
+        accepted_key_types=args.key_types,
+        output_format=args.format,
+        output_fd=output_fd,
+    )
+    if args.inplace_edit:
+        output_fd.close()
+        os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
 
 if __name__ == "__main__":
     main()
