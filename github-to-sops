@@ -26,7 +26,7 @@ creation_rules:
         - Mark stuff to replace by having a line with {GITHUB_TO_SOPS_TAG} which can be within a comment or not
         - Following lines with same indent get dropped
 # EOF
-""".strip()
+"""
 
 def process_template(template, tag, output_fd):
     """
@@ -151,7 +151,7 @@ def fetch_contributors(api_url: str) -> List[str]:
     except error.HTTPError as e:
         print(f"HTTP Error: {e.code} {e.reason}", file=sys.stderr)
         print(
-            "For private repositories and to avoid throttling you must set the GITHUB_TOKE\n. Alternatively consider passing users explicitly via --github-users to avoid auth hassles.",
+            "For private repositories and to avoid throttling you must set the GITHUB_TOKEN\n. Alternatively consider passing users explicitly via --github-users to avoid auth hassles.",
             file=sys.stderr,
         )
         return []
@@ -393,7 +393,7 @@ def main():
         output_fd = open(args.inplace_edit + ".tmp", "w")
 
     print_keys(
-        template=input_template,
+        template=input_template.strip(),
         keys=keys,
         accepted_key_types=args.key_types,
         output_format=args.format,
