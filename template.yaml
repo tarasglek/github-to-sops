@@ -1,0 +1,6 @@
+creation_rules:
+  - key_groups:
+      - age:
+        - Mark stuff to replace by having a line with {GITHUB_TO_SOPS_TAG} which can be within a comment or not
+        - Following lines with same indent get dropped
+# replaced all the {GITHUB_TO_SOPS_TAG}, but kept this one
