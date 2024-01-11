@@ -1,4 +1,4 @@
-This script enables one to use github as a trusted public key distribution mechanism.
+This script enables one to use github as a trusted public key distribution mechanism. SOPS enables git as a secret vault.
 
 ## Why?
 
