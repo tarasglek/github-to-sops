@@ -9,7 +9,7 @@ import logging
 import os
 import sys
 import subprocess
-from typing import Optional, List, Set
+from typing import Any, Dict, Optional, List, Set, TextIO
 from urllib import request, error
 import re
 
@@ -277,15 +277,39 @@ def is_tool_available(name):
         return False
 
 
-def comma_separated_list(string) -> Set[str]:
+def comma_separated_list(string: str) -> Set[str]:
+    """
+    Converts a comma-separated string into a set of strings.
+
+    :param string: A string containing comma-separated values.
+    :return: A set containing the individual values as strings.
+    """
     return set(string.split(","))
 
-def print_keys(template, keys, accepted_key_types, output_format, output_fd):
+def print_keys(template: str, keys: List[Dict[str, Any]],
+               accepted_key_types: Set[str], output_format: str,
+               output_fd: TextIO) -> None:
+    """
+    Processes a template and prints SSH keys in a specified format.
+
+    :param template: A string template for processing.
+    :param keys: A list of dictionaries containing key information.
+    :param accepted_key_types: A set of accepted key types.
+    :param output_format: The format in which to output the keys.
+    :param output_fd: The file descriptor to write the output to.
+    """
     for line_prefix in process_template(template, GITHUB_TO_SOPS_TAG, output_fd):
         if line_prefix is None:
             line_prefix = ""
         print(f"{line_prefix}# {GENERATED_MSG}", file=output_fd)
-        for entry in iterate_keys(keys=keys, accepted_key_types=accepted_key_types):
+
+        # Sort the keys by the 'username' field
+        sorted_keys = sorted(
+            iterate_keys(keys=keys, accepted_key_types=accepted_key_types),
+            key=lambda entry: entry["username"]
+        )
+
+        for entry in sorted_keys:
             username = entry["username"]
             key_type = entry["key_type"]
             key = entry["key"]
@@ -305,6 +329,9 @@ def print_keys(template, keys, accepted_key_types, output_format, output_fd):
                 print(f"{key_type} {key} {username}", file=output_fd)
 
 def main():
+    """
+    Main func
+    """
     parser = argparse.ArgumentParser(
         description="Fetch SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
         epilog=f"""Example invocations:
