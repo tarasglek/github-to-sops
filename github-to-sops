@@ -418,6 +418,8 @@ def main():
         args.format = "sops"
         input_template = open(args.inplace_edit, "r").read()
         output_fd = open(args.inplace_edit + ".tmp", "w")
+        if args.key_types is None:
+            args.key_types = set(["ssh-ed25519"])
 
     print_keys(
         template=input_template.strip(),
