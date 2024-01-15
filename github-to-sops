@@ -306,7 +306,7 @@ def print_keys(template: str, keys: List[Dict[str, Any]],
         # Sort the keys by the 'username' field
         sorted_keys = sorted(
             iterate_keys(keys=keys, accepted_key_types=accepted_key_types),
-            key=lambda entry: entry["username"]
+            key=lambda entry: entry["username"].lower()
         )
 
         for entry in sorted_keys:
