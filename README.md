@@ -27,6 +27,8 @@ Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 
 
 ## Examples:
 
+I wrote an indepth explanation and screencasts on my blog post introducing [github-to-sops](https://taras.glek.net/post/github-to-sops-lighter-weight-secret-management/#heres-how-you-get-started).
+
 ### Example workflow for secrets with github
 
 generate keys
