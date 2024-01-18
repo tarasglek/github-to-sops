@@ -1,0 +1,16 @@
+[project]
+name = "github-to-sops"
+version = "0.1.0"
+description = "Use github as a trusted public key distribution mechanism."
+license = "MIT"
+authors = ["Taras Glek <taras@glek.net>"]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+
+[tasks]
+build = "rattler-build build --recipe rattler/recipe.yaml"
+clean = "rm -fr output"
+
+[dependencies]
+rattler-build = ">=0.7.0,<0.8"
+python = ">=3.12.1,<3.13"

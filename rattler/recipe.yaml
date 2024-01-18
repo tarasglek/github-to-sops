@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+context:
+  version: "0.1.0"
+
+package:
+  name: "github-to-sops"
+  version: ${{ version }}
+
+source:
+  - path: ..
+
+build:
+  # Thanks to `noarch: python` this package works on all platforms
+  noarch: python
+  script:
+    - python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - pip
+    - python 3.10
+  run:
+    - python 3.10
+
+tests:
+
+about:
+  homepage: https://github.com/tarasglek/github-to-sops
+  license: MIT
+  license_file: LICENSE
+  summary: Use github as a trusted public key distribution mechanism.
+  description: |
+    github-to-sops enables one to use GitHub as a trusted public key distribution mechanism.
+    SOPS enables git as a secret vault.
+  documentation: https://github.com/tarasglek/github-to-sops/blob/main/README.md
+  repository: https://github.com/tarasglek/github-to-sops
