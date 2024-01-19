@@ -1,3 +1,27 @@
 [project]
 name = "github-to-sops"
 version = "0.1"
+description = ""
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{name = "Taras Glek"}]
+license = {text = "MIT"}
+classifiers = [
+    "License :: OSI Approved :: MIT License"
+]
+dependencies = [
+
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/tarasglek/github-to-sops"
+Changelog = "https://github.com/tarasglek/github-to-sops/releases"
+Issues = "https://github.com/tarasglek/github-to-sops/issues"
+CI = "https://github.com/tarasglek/github-to-sops/actions"
+
+[project.optional-dependencies]
+test = ["pytest"]
