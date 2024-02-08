@@ -22,6 +22,3 @@ Homepage = "https://github.com/tarasglek/github-to-sops"
 Changelog = "https://github.com/tarasglek/github-to-sops/releases"
 Issues = "https://github.com/tarasglek/github-to-sops/issues"
 CI = "https://github.com/tarasglek/github-to-sops/actions"
-
-[project.optional-dependencies]
-test = ["pytest"]
