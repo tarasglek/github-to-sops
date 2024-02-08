@@ -14,8 +14,11 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
+github-to-sops = "github_to_sops.__init__:main"
 
 [project.urls]
 Homepage = "https://github.com/tarasglek/github-to-sops"
