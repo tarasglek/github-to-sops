@@ -11,7 +11,14 @@ SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this
 ## Requirements
 
 * Python3
+* [pip](https://pip.pypa.io/en/stable/installation/)
 * https://github.com/Mic92/ssh-to-age/ (until the [SOPS ssh backend](https://github.com/getsops/sops/pull/1134) lands).
+
+## Installation
+The latest version of github-to-sops can be cloned locally or installed using pip:
+```python
+pip install github-to-sops
+```
 
 ## Implementation
 
@@ -21,7 +28,6 @@ Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 
 
 ## Contributions Welcome
 * Tests
-* Would be nice to `pip install github-to-sops`
 * Binary build for python-less environments
 * Would be nice to add is ACLs and an integrity check to keys being used.
 
