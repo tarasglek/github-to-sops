@@ -75,7 +75,7 @@ sops:
 ```
 ^ is safe to commit!
 
-Decrypting secrets using ssh keys
+#### Decrypting secrets using ssh keys
 
 ```bash
 export SOPS_AGE_KEY=$(ssh-to-age -private-key < ~/.ssh/id_ed25519)
