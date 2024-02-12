@@ -174,13 +174,13 @@ def convert_key_to_age(key: str) -> Optional[str]:
     return None
 
 
-def fetch_github_ssh_keys(contributors: List[str]):
+def fetch_github_ssh_keys(contributors: List[str]) -> Dict[str, Dict[str, List[str]]]:
     """
     Fetch and output the specified types of SSH keys for a list of GitHub users.
-    Optionally convert the keys to age keys using ssh-to-age. Output key types
-    that the user doesn't have if the key_types parameter is set.
+    Store each key type mapping to a list of keys.
 
     :param contributors: List of GitHub usernames.
+    :return: A dictionary mapping usernames to dictionaries of key types and their keys.
     """
     keys_by_user_and_type = {}
     for username in contributors:
@@ -189,9 +189,11 @@ def fetch_github_ssh_keys(contributors: List[str]):
             with github_request(f"https://github.com/{username}.keys") as response:
                 lines = response.read().decode().strip().splitlines()
                 for line in lines:
-                    key_type, key = line.split(" ")
-                    user_keys[key_type] = key
-                    keys_by_user_and_type[username] = user_keys
+                    key_type, key = line.split(" ", 1)  # Split on first space only
+                    if key_type not in user_keys:
+                        user_keys[key_type] = []
+                    user_keys[key_type].append(key)
+                keys_by_user_and_type[username] = user_keys
         except error.HTTPError as e:
             print(
                 f"HTTP Error: {e.code} {e.reason} for user {username}", file=sys.stderr
@@ -224,41 +226,62 @@ def iterate_keys(
             key = user_keys[key_type]
             yield {"username": username, "key_type": key_type, "key": key}
 
+def ssh_keyscan(hosts: List[str], parsed_keys: Dict[str, Dict[str, List[str]]] = None) -> Dict[str, Dict[str, List[str]]]:
+    """
+    Perform an SSH key scan for a list of hosts and parse the known hosts content.
 
-def ssh_keyscan(hosts: List[str], parsed_keys={}):
-    def ssh_keyscan(host: str) -> str:
+    :param hosts: A list of hostnames or IP addresses to scan.
+    :param parsed_keys: An optional dictionary to which the scan results will be added.
+                        If not provided, a new dictionary will be created.
+    :return: A dictionary mapping each host to a dictionary of key types and their keys.
+             Each key type maps to a list of keys to accommodate multiple keys of the same type.
+    """
+    if parsed_keys is None:
+        parsed_keys = {}
+
+    def ssh_keyscan_inner(host: str) -> str:
+        """
+        Run the ssh-keyscan command for a single host and return its output.
+
+        :param host: The hostname or IP address to scan.
+        :return: The stdout from the ssh-keyscan command.
+        :raises Exception: If ssh-keyscan fails.
+        """
         try:
-            # Run the ssh-keyscan command
             result = subprocess.run(
                 ["ssh-keyscan", host],
                 check=True,
                 stdout=subprocess.PIPE,
                 text=True
             )
-            # Return the stdout if the command was successful
             return result.stdout
         except subprocess.CalledProcessError as e:
             raise Exception(f"ssh-keyscan failed with exit code {e.returncode}: {e.stderr}")
 
-    def parse_known_hosts_content(known_hosts, parsed_keys={}):
+    def parse_known_hosts_content(known_hosts: str, parsed_keys: Dict[str, Dict[str, List[str]]]):
+        """
+        Parse the content of known hosts and update the parsed_keys dictionary.
+
+        :param known_hosts: The stdout from the ssh-keyscan command.
+        :param parsed_keys: The dictionary to which the scan results will be added.
+        """
         for line in known_hosts.splitlines():
-            # Skip comments and empty lines
             if line.startswith("#") or line.strip() == "":
                 continue
 
-            # Skip invalid lines
             parts = line.strip().split()
             if len(parts) < 3:
-                continue  # Skip invalid lines
+                continue
 
             host, key_type, key = parts[0], parts[1], parts[2]
-            # Note keys might be hashed
             if host not in parsed_keys:
                 parsed_keys[host] = {}
-            parsed_keys[host][key_type] = key
+            if key_type not in parsed_keys[host]:
+                parsed_keys[host][key_type] = []
+            parsed_keys[host][key_type].append(key)
 
     for host in hosts:
-        known_hosts_log = ssh_keyscan(host)
+        known_hosts_log = ssh_keyscan_inner(host)
         parse_known_hosts_content(known_hosts_log, parsed_keys)
 
     return parsed_keys
@@ -286,47 +309,51 @@ def comma_separated_list(string: str) -> Set[str]:
     """
     return set(string.split(","))
 
-def print_keys(template: str, keys: List[Dict[str, Any]],
+
+def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
                accepted_key_types: Set[str], output_format: str,
                output_fd: TextIO) -> None:
     """
     Processes a template and prints SSH keys in a specified format.
 
     :param template: A string template for processing.
-    :param keys: A list of dictionaries containing key information.
+    :param user_keys: A dictionary mapping usernames to dictionaries of key types and their keys.
+                      Each key type maps to a list of keys.
     :param accepted_key_types: A set of accepted key types.
     :param output_format: The format in which to output the keys.
     :param output_fd: The file descriptor to write the output to.
     """
+    # Assuming process_template is a function you have defined elsewhere
     for line_prefix in process_template(template, GITHUB_TO_SOPS_TAG, output_fd):
         if line_prefix is None:
             line_prefix = ""
         print(f"{line_prefix}# {GENERATED_MSG}", file=output_fd)
 
-        # Sort the keys by the 'username' field
-        sorted_keys = sorted(
-            iterate_keys(keys=keys, accepted_key_types=accepted_key_types),
-            key=lambda entry: entry["username"].lower()
-        )
+        # Sort the users by their username
+        sorted_users = sorted(user_keys.keys(), key=lambda username: username.lower())
 
-        for entry in sorted_keys:
-            username = entry["username"]
-            key_type = entry["key_type"]
-            key = entry["key"]
-            if output_format in ["ssh-to-age", "sops"]:
-                key = convert_key_to_age(f"{key_type} {key}")
-                if not key:
-                    print(
-                        f"Skipped converting {key_type} key for user {username} to age key with ssh-to-age",
-                        file=sys.stderr,
-                    )
+        for username in sorted_users:
+            user_key_types = user_keys[username]
+            for key_type in user_key_types:
+                if key_type not in accepted_key_types:
                     continue
-                if output_format == "sops":
-                    print(f"{line_prefix}- {key} # {username}", file=output_fd)
-                else:
-                    print(f"{key}", file=output_fd)
-            else:
-                print(f"{key_type} {key} {username}", file=output_fd)
+                for key in user_key_types[key_type]:
+                    if output_format in ["ssh-to-age", "sops"]:
+                        # Assuming convert_key_to_age is a function you have defined elsewhere
+                        key = convert_key_to_age(f"{key_type} {key}")
+                        if not key:
+                            print(
+                                f"Skipped converting {key_type} key for user {username} to age key with ssh-to-age",
+                                file=sys.stderr,
+                            )
+                            continue
+                        if output_format == "sops":
+                            print(f"{line_prefix}- {key} # {username}", file=output_fd)
+                        else:
+                            print(f"{key}", file=output_fd)
+                    else:
+                        print(f"{key_type} {key} {username}", file=output_fd)
+
 
 def main():
     """
@@ -423,7 +450,7 @@ def main():
 
     print_keys(
         template=input_template.strip(),
-        keys=keys,
+        user_keys=keys,
         accepted_key_types=args.key_types,
         output_format=args.format,
         output_fd=output_fd,
