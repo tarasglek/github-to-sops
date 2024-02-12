@@ -91,6 +91,14 @@ dontlook
 
 `sops -i secrets.env.yaml` is useful for interactive editing.
 
+#### Bulk-updating secrets+keys when someone is added/removed from project
+
+First command pulls the latest set of keys from people in github, the second re-encrypts. Note you need to be able to decrypt keys yourself using `sops -d` command above as a prereq.
+```bash
+fdfind -H  .sops.yaml$|xargs -n1 github-to-sops --local-github-checkout . --key-types ssh-ed25519  --inplace-edit 
+fdfind enc.yaml|xargs -n1 sops updatekeys -y
+```
+
 ### Misc Examples
 
 Generate keys from a local github checkout and add ssh hosts to it:
