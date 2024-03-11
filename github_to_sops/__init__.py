@@ -108,7 +108,7 @@ def get_api_url(repo_url: Optional[str], local_repo: Optional[str]) -> str:
     """
     api_url = None
     if repo_url:
-        api_url = repo_url.replace("github.com", GITHUB_API_BASE_URL, 1)
+        api_url = repo_url.rstrip("/").replace("github.com", GITHUB_API_BASE_URL, 1)
     elif local_repo:
         api_url = get_api_url_from_git(local_repo)
     if api_url:
@@ -121,38 +121,79 @@ def get_api_url(repo_url: Optional[str], local_repo: Optional[str]) -> str:
         )
 
 
-def github_request(request_url: str):
+def github_request(request_url: str, method: str = 'GET', data: Optional[dict] = None) -> request.urlopen:
     """
-    Make a request to the GitHub API.
+    Make a request to the GitHub API, supporting both GET and POST requests.
     This injects the GitHub API token environment variable into the request if present.
 
     :param request_url: URL to make the request to.
+    :param method: HTTP method ('GET' or 'POST').
+    :param data: Data to be sent in the request body (for POST requests).
     :return: Response from the GitHub API.
     """
-    req = request.Request(request_url)
+    if data is not None:
+        data = json.dumps(data).encode()
+    req = request.Request(request_url, data=data, method=method)
     github_token = os.getenv("GITHUB_TOKEN")
     if github_token:
         auth_header = f"token {github_token}"
         req.add_header("Authorization", auth_header)
+    req.add_header("Content-Type", "application/json")
     return request.urlopen(req)
-
 
 def fetch_contributors(api_url: str) -> List[str]:
     """
-    Fetch the list of contributors for a GitHub repository.
+    Fetch the list of contributors for a GitHub repository using GitHub's GraphQL API.
+    If the GraphQL query fails, fallback to the REST API.
 
     :param api_url: GitHub API URL for the repository.
     :return: List of contributor usernames.
     """
+    graphql_url = "https://api.github.com/graphql"
+    owner, repo = api_url.split('/')[-2:]
+    query = """
+    query {
+      repository(owner: "%s", name: "%s") {
+        collaborators(first: 100) {
+          edges {
+            node {
+              login
+            }
+          }
+        }
+      }
+    }
+    """ % (owner, repo)
+
     try:
-        with github_request(f"{api_url}/contributors") as response:
+        with github_request(graphql_url, 'POST', {'query': query}) as response:
+            data = json.load(response)
+            contributors = data['data']['repository']['collaborators']['edges']
+            return [contributor['node']['login'] for contributor in contributors]
+    except (error.HTTPError, TypeError) as e:
+        error_type = "HTTPError" if isinstance(e, error.HTTPError) else "KeyError"
+        logging.error(f"{error_type} when querying {graphql_url}: {e}")
+        logging.info("Attempting to list users via REST API as a fallback")
+        return fetch_contributors_rest(api_url)
+
+
+def fetch_contributors_rest(api_url: str) -> List[str]:
+    """
+    Fallback method to fetch the list of contributors for a GitHub repository using the REST API.
+
+    :param api_url: GitHub API URL for the repository.
+    :return: List of contributor usernames.
+    """
+    url = f"{api_url}/contributors"
+    try:
+        with github_request(url) as response:
             contributors = json.load(response)
+            logging.debug(f"{url} returned {json.dumps(contributors, indent=2)}")
             return [contributor["login"] for contributor in contributors]
     except error.HTTPError as e:
-        print(f"HTTP Error: {e.code} {e.reason}", file=sys.stderr)
-        print(
-            "For private repositories and to avoid throttling you must set the GITHUB_TOKEN\n. Alternatively consider passing users explicitly via --github-users to avoid auth hassles.",
-            file=sys.stderr,
+        logging.error(f"HTTP Error: {e.code} {e.reason}")
+        logging.error(
+            "For private repositories and to avoid throttling you must set the GITHUB_TOKEN. Alternatively, consider passing users explicitly via --github-users to avoid auth hassles."
         )
         return []
 
