@@ -335,7 +335,7 @@ def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
         for username in sorted_users:
             user_key_types = user_keys[username]
             for key_type in user_key_types:
-                if key_type not in accepted_key_types:
+                if accepted_key_types is not None and key_type not in accepted_key_types:
                     continue
                 for key in user_key_types[key_type]:
                     if output_format in ["ssh-to-age", "sops"]:
