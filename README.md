@@ -16,8 +16,13 @@ SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this
 
 ## Installation
 The latest version of github-to-sops can be cloned locally or installed using pip:
-```python
+```bash
 pip install github-to-sops
+```
+
+On linux you can install ssh-to-age using docker:
+```bash
+docker run --rm -v /usr/local/bin:/go/bin golang:latest go install github.com/Mic92/ssh-to-age/cmd/ssh-to-age@latest
 ```
 
 ## Implementation
