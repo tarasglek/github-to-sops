@@ -43,7 +43,13 @@ I wrote an indepth explanation and screencasts on my blog post introducing [gith
 
 ### Example workflow for secrets with github
 
-generate keys
+generate keys using users
+
+```bash
+github-to-sops --github-users tarasglek,humphd --key-types ssh-ed25519 --format sops > .sops.yaml
+```
+
+or import user list from a github project
 ```bash
 ./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops > .sops.yaml
 ```
