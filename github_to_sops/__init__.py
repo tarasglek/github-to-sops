@@ -554,7 +554,7 @@ def main():
     supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
     import_keys_parser.add_argument(
         "--format",
-        default=supported_conversions[0],
+        default="sops",
         type=str,
         choices=supported_conversions,
         help=f"Output/convert keys using the specified format. Supported formats: "
