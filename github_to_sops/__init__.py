@@ -497,7 +497,7 @@ def generate_keys(args):
         keys = ssh_keyscan(args.ssh_hosts, keys)
 
     print_keys(
-        template=input_template.strip() if args.inplace_edit else SOPS_TEMPLATE,
+        template=input_template.strip() if args.inplace_edit and args.format == "sops" else SOPS_TEMPLATE if args.format == "sops" else "",
         user_keys=keys,
         accepted_key_types=args.key_types,
         output_format=args.format,
