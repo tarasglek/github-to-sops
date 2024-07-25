@@ -41,6 +41,13 @@ Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 
 
 I wrote an indepth explanation and screencasts on my blog post introducing [github-to-sops](https://taras.glek.net/post/github-to-sops-lighter-weight-secret-management/#heres-how-you-get-started).
 
+## Env vars:
+
+*  GITHUB_TOKEN: optional github token which helps avoid rate limiting.
+
+I tried to make the code work without github tokens, but github requires them for private repos and does aggressive rate-limiting without them. See github docs on how to obtain GITHUB_TOKEN https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+
+
 ### Example workflow for secrets with github
 
 Import all public keys for contributors from github project
@@ -128,6 +135,3 @@ Example invocations:
 - `./github-to-sops import-keys --local-github-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519`
 - `./github-to-sops refresh-secrets`
 ```
-
-## Env vars:
-*  GITHUB_TOKEN: optional github token which helps avoid rate limiting.
