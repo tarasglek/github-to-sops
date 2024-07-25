@@ -476,7 +476,7 @@ def main():
         "--inplace-edit",
         help="Edit SOPS file in-place. This sets --format to sops",
     )
-    generate_keys_parser.add_argument(
+    import_keys_parser.add_argument(
         "-v",
         "--verbose",
         help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
