@@ -400,6 +400,34 @@ def generate_keys():
     """
     Main func
     """
+    if args.inplace_edit:
+        args.format = "sops"
+        input_template = open(args.inplace_edit, "r").read()
+        output_fd = open(args.inplace_edit + ".tmp", "w")
+        if args.key_types is None:
+            args.key_types = set(["ssh-ed25519"])
+
+    api_url = get_api_url(args.github_url, args.local_github_checkout)
+    if args.github_users:
+        contributors = args.github_users
+    else:
+        contributors = fetch_contributors(api_url)
+
+    keys = fetch_github_ssh_keys(contributors)
+
+    if args.ssh_hosts:
+        keys = ssh_keyscan(args.ssh_hosts, keys)
+
+    print_keys(
+        template=input_template.strip() if args.inplace_edit else SOPS_TEMPLATE,
+        user_keys=keys,
+        accepted_key_types=args.key_types,
+        output_format=args.format,
+        output_fd=output_fd if args.inplace_edit else sys.stdout,
+    )
+    if args.inplace_edit:
+        output_fd.close()
+        os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
 def main():
     parser = argparse.ArgumentParser(
         description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files."
