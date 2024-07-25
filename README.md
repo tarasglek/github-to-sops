@@ -112,24 +112,17 @@ fdfind enc.yaml|xargs -n1 sops updatekeys -y
 ## Usage:
 ```
 ./github-to-sops -h
-usage: github-to-sops [-h] [--github-url GITHUB_URL | --local-github-checkout LOCAL_GITHUB_CHECKOUT] [--known-hosts KNOWN_HOSTS] [--github-users GITHUB_USERS] [--key-types KEY_TYPES] [--format {authorized_keys,ssh-to-age,sops}]
+usage: github-to-sops [-h] {import-keys,refresh-secrets} ...
 
-Fetch SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys
+Manage GitHub SSH keys and generate SOPS-compatible SSH key files.
 
 options:
   -h, --help            show this help message and exit
-  --github-url GITHUB_URL
-                        GitHub repository URL.
-  --local-github-checkout LOCAL_GITHUB_CHECKOUT
-                        Path to local Git repository.
-  --known-hosts KNOWN_HOSTS
-                        Path to ssh known hosts to also fetch keys from
-  --github-users GITHUB_USERS
-                        Comma-separated list of GitHub usernames to fetch keys for.
-  --key-types KEY_TYPES
-                        Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.
-  --format {authorized_keys,ssh-to-age,sops,json}
-                        Output/convert keys using the specified format. Supported formats: authorized_keys, ssh-to-age, sops. For example, use '--format ssh-to-age' to convert SSH keys to age keys.
+
+Commands:
+  {import-keys,refresh-secrets}
+    import-keys         Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys
+    refresh-secrets     Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them.
 
 Example invocations:
 - `./github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
