@@ -107,25 +107,7 @@ fdfind enc.yaml|xargs -n1 sops updatekeys -y
 
 ### Misc Examples
 
-Generate keys from a local github checkout and add ssh hosts to it:
 
-```bash
-# note you can also make a "custom" known_hosts with ssh-keyscan 192.168.1.1 > /tmp/known_hosts
-./github-to-sops --local-github-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519
-creation_rules:
-  - key_groups:
-      - age:
-        - age13runq29jhy9kfpaegczrzttykerswh0qprq59msgd754yermtfmsa3hwg2 # tarasglek
-        - age120ld5rvtsuavnlexa2kc7eahrg8egf4gwg22t0q44rcu2z3xegrq4364t4 # 192.168.1.1
-```
-
-For generating ssh authorized_keys:
-
-```bash
-./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIedvn21UgBc1VcasThd+/U84Xfkrw+Ox5RIxufs5tJP humphd
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDzJmAWAOp6fQGs/+v1PT+0dgzG7XHwhJnvF+tL5TwJx tarasglek
-```
 
 ## Usage:
 ```
@@ -149,7 +131,11 @@ options:
   --format {authorized_keys,ssh-to-age,sops,json}
                         Output/convert keys using the specified format. Supported formats: authorized_keys, ssh-to-age, sops. For example, use '--format ssh-to-age' to convert SSH keys to age keys.
 
-Example invocations: `./github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops` `./github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys` `./github-to-sops import-keys --local-github-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519`
+Example invocations:
+- `./github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+- `./github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+- `./github-to-sops import-keys --local-github-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519`
+- `./github-to-sops refresh-secrets`
 ```
 
 ## Env vars:
