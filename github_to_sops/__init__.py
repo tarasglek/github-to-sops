@@ -507,8 +507,11 @@ def generate_keys(args):
         output_fd.close()
         os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
 def get_version():
-    from importlib.metadata import version
-    return version("github_to_sops")
+    try:
+        from importlib.metadata import version
+        return version("github_to_sops")
+    except Exception:
+        return "unknown"
 
 def main():
     parser = argparse.ArgumentParser(
@@ -518,7 +521,7 @@ def main():
     parser.add_argument(
         "--version",
         action="version",
-        version=f"%(prog)s {get_version()}"
+        version=f"%(prog)s {get_version()}" if get_version() != "unknown" else "unknown"
     )
     parser.add_argument(
         "-h", "--help",
