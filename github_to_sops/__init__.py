@@ -508,7 +508,19 @@ def generate_keys(args):
         os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
 def main():
     parser = argparse.ArgumentParser(
-        description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files."
+        description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
+        add_help=False
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {get_version()}"
+    )
+    parser.add_argument(
+        "-h", "--help",
+        action="help",
+        default=argparse.SUPPRESS,
+        help="Show this help message and exit."
     )
     subparsers = parser.add_subparsers(dest="command")
 
@@ -583,3 +595,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+def get_version():
+    from importlib.metadata import version
+    return version("github_to_sops")
