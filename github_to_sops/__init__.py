@@ -66,7 +66,21 @@ def process_template(template, tag, output_fd):
     if not found_tag:
         yield None
 
+def is_git_repo(repo_path: str) -> bool:
+    """
+    Check if the given path is a git repository.
+    """
+    try:
+        subprocess.check_output(["git", "-C", repo_path, "rev-parse", "--is-inside-work-tree"])
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
 def get_api_url_from_git(repo_path: str) -> Optional[str]:
+    if not is_git_repo(repo_path):
+        raise ValueError(
+            "The provided path is not a git repository. Please provide the --github-url argument."
+        )
     """
     Extract the GitHub API URL from the local git repository using git command.
 
@@ -77,7 +91,8 @@ def get_api_url_from_git(repo_path: str) -> Optional[str]:
         # Get the remote URL of the 'origin' remote repository
         git_url = (
             subprocess.check_output(
-                ["git", "-C", repo_path, "remote", "get-url", "origin"]
+                ["git", "-C", repo_path, "remote", "get-url", "origin"],
+                stderr=subprocess.PIPE
             )
             .decode()
             .strip()
