@@ -43,7 +43,7 @@ I wrote an indepth explanation and screencasts on my blog post introducing [gith
 
 ### Example workflow for secrets with github
 
-import keys
+Import all public keys for contributors from github project
 ```bash
 ./github-to-sops import-keys  > .sops.yaml
 ```
