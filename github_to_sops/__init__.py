@@ -396,32 +396,38 @@ def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
                         print(f"{key_type} {key} {username}", file=output_fd)
 
 
-def main():
+def generate_keys():
     """
     Main func
     """
+def main():
     parser = argparse.ArgumentParser(
-        description="Fetch SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
+        description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files."
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    generate_keys_parser = subparsers.add_parser(
+        "generate-keys",
+        help="Fetch SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
         epilog=f"""Example invocations:
-`{sys.argv[0]} --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
-`{sys.argv[0]} --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-`{sys.argv[0]} --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
+`{sys.argv[0]} generate-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+`{sys.argv[0]} generate-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+`{sys.argv[0]} generate-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
 """,
     )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--github-url", help="GitHub repository URL.")
-    group.add_argument("--local-github-checkout", help="Path to local Git repository.")
-    parser.add_argument(
+    generate_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
+    generate_keys_parser.add_argument("--local-github-checkout", help="Path to local Git repository.")
+    generate_keys_parser.add_argument(
         "--ssh-hosts",
         type=comma_separated_list,
         help="Comma-separated list of ssh servers to fetch public keys from."
     )
-    parser.add_argument(
+    generate_keys_parser.add_argument(
         "--github-users",
         type=comma_separated_list,
         help="Comma-separated list of GitHub usernames to fetch keys for.",
     )
-    parser.add_argument(
+    generate_keys_parser.add_argument(
         "--key-types",
         type=comma_separated_list,
         default=None,
@@ -429,7 +435,7 @@ def main():
     )
     # Supported conversions with validation
     supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
-    parser.add_argument(
+    generate_keys_parser.add_argument(
         "--format",
         default=supported_conversions[0],
         type=str,
@@ -438,67 +444,23 @@ def main():
         f"{', '.join(supported_conversions)}. For example, use '--format "
         f"ssh-to-age' to convert SSH keys to age keys.",
     )
-    parser.add_argument(
+    generate_keys_parser.add_argument(
         "--inplace-edit",
         help="Edit SOPS file in-place. This sets --format to sops",
     )
-    parser.add_argument(
+    generate_keys_parser.add_argument(
         "-v",
         "--verbose",
         help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
         action="store_true",
     )
+
     args = parser.parse_args()
 
-    # Configure logging based on the verbose flag
-    if args.verbose:
-        # todo turn on internal http logging in python
-        logging.basicConfig(level=logging.DEBUG)
+    if args.command == "generate-keys":
+        generate_keys()
     else:
-        logging.basicConfig(level=logging.INFO)
-
-    github_users = []
-
-    if args.github_users:
-        github_users = args.github_users
-    elif args.github_url or args.local_github_checkout:
-        github_users = fetch_contributors(
-            get_api_url(args.github_url, args.local_github_checkout)
-        )
-
-    keys = {}
-    if github_users:
-        keys = fetch_github_ssh_keys(github_users)
-    if args.ssh_hosts:
-        keys = ssh_keyscan(args.ssh_hosts, keys)
-    if not keys:
-        print(
-            "No users found or error fetching github users and no --ssh-hosts provided",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    input_template = ""
-    output_fd=sys.stdout
-    if args.format == "sops":
-        input_template = SOPS_TEMPLATE
-    if args.inplace_edit:
-        args.format = "sops"
-        input_template = open(args.inplace_edit, "r").read()
-        output_fd = open(args.inplace_edit + ".tmp", "w")
-        if args.key_types is None:
-            args.key_types = set(["ssh-ed25519"])
-
-    print_keys(
-        template=input_template.strip(),
-        user_keys=keys,
-        accepted_key_types=args.key_types,
-        output_format=args.format,
-        output_fd=output_fd,
-    )
-    if args.inplace_edit:
-        output_fd.close()
-        os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
+        parser.print_help()
 
 if __name__ == "__main__":
     main()
