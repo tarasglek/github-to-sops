@@ -402,11 +402,16 @@ def refresh_secrets(args):
     """
     import subprocess
     import os
+    import logging
+
+    # Configure logging to output to stderr
+    logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stderr)
 
     def find_sops_yaml_files():
         """
         Find all .sops.yaml files in the repo that are managed by git.
         """
+        logging.info("Finding .sops.yaml files in the repo managed by git.")
         result = subprocess.run(
             ["git", "ls-files", "*.sops.yaml"],
             stdout=subprocess.PIPE,
@@ -416,7 +421,9 @@ def refresh_secrets(args):
         return result.stdout.splitlines()
 
     sops_yaml_files = find_sops_yaml_files()
+    logging.info(f"Found {len(sops_yaml_files)} .sops.yaml files.")
     for file in sops_yaml_files:
+        logging.info(f"Running import-keys --inplace-edit on {file}.")
         subprocess.run(
             [sys.argv[0], "import-keys", "--inplace-edit", file],
             check=True
