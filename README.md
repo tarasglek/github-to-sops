@@ -45,7 +45,11 @@ I wrote an indepth explanation and screencasts on my blog post introducing [gith
 
 import keys
 ```bash
-./github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops > .sops.yaml
+./github-to-sops import-keys  > .sops.yaml
+```
+of if your repo isn't published to github or you aren't working inside a git checkout
+```
+./github-to-sops import-keys  --github-url https://github.com/tarasglek/chatcraft.org
 ```
 lets see
 ```bash
@@ -99,15 +103,9 @@ dontlook
 
 #### Bulk-updating secrets+keys when someone is added/removed from project
 
-First command pulls the latest set of keys from people in github, the second re-encrypts. Note you need to be able to decrypt keys yourself using `sops -d` command above as a prereq.
 ```bash
-fdfind -H  .sops.yaml$|xargs -n1 github-to-sops --local-github-checkout . --key-types ssh-ed25519  --inplace-edit 
-fdfind enc.yaml|xargs -n1 sops updatekeys -y
+github-to-sops refresh-secrets
 ```
-
-### Misc Examples
-
-
 
 ## Usage:
 ```
