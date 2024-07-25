@@ -434,13 +434,13 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    generate_keys_parser = subparsers.add_parser(
-        "generate-keys",
-        help="Fetch SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
+    import_keys_parser = subparsers.add_parser(
+        "import-keys",
+        help="Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
         epilog=f"""Example invocations:
-`{sys.argv[0]} generate-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
-`{sys.argv[0]} generate-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-`{sys.argv[0]} generate-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
+`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+`{sys.argv[0]} import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
 """,
     )
     generate_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
@@ -485,8 +485,8 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "generate-keys":
-        generate_keys(args)
+    if args.command == "import-keys":
+        generate_keys(args)  # Function name remains the same as it handles the logic
     else:
         parser.print_help()
 
