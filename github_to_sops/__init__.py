@@ -396,6 +396,32 @@ def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
                         print(f"{key_type} {key} {username}", file=output_fd)
 
 
+def refresh_secrets(args):
+    """
+    Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them.
+    """
+    import subprocess
+    import os
+
+    def find_sops_yaml_files():
+        """
+        Find all .sops.yaml files in the repo that are managed by git.
+        """
+        result = subprocess.run(
+            ["git", "ls-files", "*.sops.yaml"],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        return result.stdout.splitlines()
+
+    sops_yaml_files = find_sops_yaml_files()
+    for file in sops_yaml_files:
+        subprocess.run(
+            [sys.argv[0], "import-keys", "--inplace-edit", file],
+            check=True
+        )
+
 def generate_keys(args):
     """
     Main func
@@ -433,6 +459,17 @@ def main():
         description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files."
     )
     subparsers = parser.add_subparsers(dest="command")
+
+    refresh_secrets_parser = subparsers.add_parser(
+        "refresh-secrets",
+        help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them."
+    )
+    refresh_secrets_parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+        action="store_true",
+    )
 
     import_keys_parser = subparsers.add_parser(
         "import-keys",
@@ -487,6 +524,8 @@ def main():
 
     if args.command == "import-keys":
         generate_keys(args)  # Function name remains the same as it handles the logic
+    elif args.command == "refresh-secrets":
+        refresh_secrets(args)
     else:
         parser.print_help()
 
