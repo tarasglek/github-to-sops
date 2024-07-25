@@ -66,7 +66,21 @@ def process_template(template, tag, output_fd):
     if not found_tag:
         yield None
 
+def is_git_repo(repo_path: str) -> bool:
+    """
+    Check if the given path is a git repository.
+    """
+    try:
+        subprocess.check_output(["git", "-C", repo_path, "rev-parse", "--is-inside-work-tree"])
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
 def get_api_url_from_git(repo_path: str) -> Optional[str]:
+    if not is_git_repo(repo_path):
+        raise ValueError(
+            f"The path '{repo_path}' is not a git repository. Please provide the --github-url argument."
+        )
     """
     Extract the GitHub API URL from the local git repository using git command.
 
@@ -77,7 +91,8 @@ def get_api_url_from_git(repo_path: str) -> Optional[str]:
         # Get the remote URL of the 'origin' remote repository
         git_url = (
             subprocess.check_output(
-                ["git", "-C", repo_path, "remote", "get-url", "origin"]
+                ["git", "-C", repo_path, "remote", "get-url", "origin"],
+                stderr=subprocess.PIPE
             )
             .decode()
             .strip()
@@ -396,32 +411,140 @@ def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
                         print(f"{key_type} {key} {username}", file=output_fd)
 
 
-def main():
+def refresh_secrets(args):
+    """
+    Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them.
+    """
+    import subprocess
+    import os
+    import logging
+
+    # Configure logging to output to stderr
+    logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stderr)
+
+    def find_sops_yaml_files():
+        """
+        Find all .sops.yaml files in the repo that are managed by git.
+        """
+        logging.info("Finding .sops.yaml files in the repo managed by git.")
+        result = subprocess.run(
+            ["git", "ls-files", "*.sops.yaml"],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        return result.stdout.splitlines()
+
+    def find_enc_yaml_files():
+        """
+        Find all *.enc.yaml files in the repo that are managed by git.
+        """
+        logging.info("Finding *.enc.yaml files in the repo managed by git.")
+        result = subprocess.run(
+            ["git", "ls-files", "*.enc.yaml"],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        return result.stdout.splitlines()
+
+    def file_contains_sops(file_path):
+        """
+        Check if the file contains 'sops:' in its content.
+        """
+        with open(file_path, 'r') as file:
+            return 'sops:' in file.read()
+
+    sops_yaml_files = find_sops_yaml_files()
+    logging.info(f"Found {len(sops_yaml_files)} .sops.yaml files.")
+    for file in sops_yaml_files:
+        logging.info(f"Running import-keys --inplace-edit on {file}.")
+        subprocess.run(
+            [sys.argv[0], "import-keys", "--inplace-edit", file],
+            check=True
+        )
+
+    enc_yaml_files = find_enc_yaml_files()
+    logging.info(f"Found {len(enc_yaml_files)} *.enc.yaml files.")
+    for file in enc_yaml_files:
+        if file_contains_sops(file):
+            logging.info(f"Running sops updatekeys -y on {file}.")
+            subprocess.run(
+                ["sops", "updatekeys", "-y", file],
+                check=True
+            )
+
+def generate_keys(args):
     """
     Main func
     """
+    if args.inplace_edit:
+        args.format = "sops"
+        input_template = open(args.inplace_edit, "r").read()
+        output_fd = open(args.inplace_edit + ".tmp", "w")
+        if args.key_types is None:
+            args.key_types = set(["ssh-ed25519"])
+
+    api_url = get_api_url(args.github_url, args.local_github_checkout)
+    if args.github_users:
+        contributors = args.github_users
+    else:
+        contributors = fetch_contributors(api_url)
+
+    keys = fetch_github_ssh_keys(contributors)
+
+    if args.ssh_hosts:
+        keys = ssh_keyscan(args.ssh_hosts, keys)
+
+    print_keys(
+        template=input_template.strip() if args.inplace_edit else SOPS_TEMPLATE,
+        user_keys=keys,
+        accepted_key_types=args.key_types,
+        output_format=args.format,
+        output_fd=output_fd if args.inplace_edit else sys.stdout,
+    )
+    if args.inplace_edit:
+        output_fd.close()
+        os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
+def main():
     parser = argparse.ArgumentParser(
-        description="Fetch SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
+        description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files."
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    refresh_secrets_parser = subparsers.add_parser(
+        "refresh-secrets",
+        help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them."
+    )
+    refresh_secrets_parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+        action="store_true",
+    )
+
+    import_keys_parser = subparsers.add_parser(
+        "import-keys",
+        help="Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
         epilog=f"""Example invocations:
-`{sys.argv[0]} --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
-`{sys.argv[0]} --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-`{sys.argv[0]} --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
+`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+`{sys.argv[0]} import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
 """,
     )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--github-url", help="GitHub repository URL.")
-    group.add_argument("--local-github-checkout", help="Path to local Git repository.")
-    parser.add_argument(
+    import_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
+    import_keys_parser.add_argument("--local-github-checkout", default=".", help="Path to local Git repository.")
+    import_keys_parser.add_argument(
         "--ssh-hosts",
         type=comma_separated_list,
         help="Comma-separated list of ssh servers to fetch public keys from."
     )
-    parser.add_argument(
+    import_keys_parser.add_argument(
         "--github-users",
         type=comma_separated_list,
         help="Comma-separated list of GitHub usernames to fetch keys for.",
     )
-    parser.add_argument(
+    import_keys_parser.add_argument(
         "--key-types",
         type=comma_separated_list,
         default=None,
@@ -429,7 +552,7 @@ def main():
     )
     # Supported conversions with validation
     supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
-    parser.add_argument(
+    import_keys_parser.add_argument(
         "--format",
         default=supported_conversions[0],
         type=str,
@@ -438,67 +561,25 @@ def main():
         f"{', '.join(supported_conversions)}. For example, use '--format "
         f"ssh-to-age' to convert SSH keys to age keys.",
     )
-    parser.add_argument(
+    import_keys_parser.add_argument(
         "--inplace-edit",
-        help="Edit SOPS file in-place. This sets --format to sops",
+        help="Edit SOPS file in-place. This takes a .sops.yaml file as input and replaces it. This sets --format to sops",
     )
-    parser.add_argument(
+    import_keys_parser.add_argument(
         "-v",
         "--verbose",
         help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
         action="store_true",
     )
+
     args = parser.parse_args()
 
-    # Configure logging based on the verbose flag
-    if args.verbose:
-        # todo turn on internal http logging in python
-        logging.basicConfig(level=logging.DEBUG)
+    if args.command == "import-keys":
+        generate_keys(args)  # Function name remains the same as it handles the logic
+    elif args.command == "refresh-secrets":
+        refresh_secrets(args)
     else:
-        logging.basicConfig(level=logging.INFO)
-
-    github_users = []
-
-    if args.github_users:
-        github_users = args.github_users
-    elif args.github_url or args.local_github_checkout:
-        github_users = fetch_contributors(
-            get_api_url(args.github_url, args.local_github_checkout)
-        )
-
-    keys = {}
-    if github_users:
-        keys = fetch_github_ssh_keys(github_users)
-    if args.ssh_hosts:
-        keys = ssh_keyscan(args.ssh_hosts, keys)
-    if not keys:
-        print(
-            "No users found or error fetching github users and no --ssh-hosts provided",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    input_template = ""
-    output_fd=sys.stdout
-    if args.format == "sops":
-        input_template = SOPS_TEMPLATE
-    if args.inplace_edit:
-        args.format = "sops"
-        input_template = open(args.inplace_edit, "r").read()
-        output_fd = open(args.inplace_edit + ".tmp", "w")
-        if args.key_types is None:
-            args.key_types = set(["ssh-ed25519"])
-
-    print_keys(
-        template=input_template.strip(),
-        user_keys=keys,
-        accepted_key_types=args.key_types,
-        output_format=args.format,
-        output_fd=output_fd,
-    )
-    if args.inplace_edit:
-        output_fd.close()
-        os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
+        parser.print_help()
 
 if __name__ == "__main__":
     main()

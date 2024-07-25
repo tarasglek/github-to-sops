@@ -43,15 +43,13 @@ I wrote an indepth explanation and screencasts on my blog post introducing [gith
 
 ### Example workflow for secrets with github
 
-generate keys using users
-
+Import all public keys for contributors from github project
 ```bash
-github-to-sops --github-users tarasglek,humphd --key-types ssh-ed25519 --format sops > .sops.yaml
+./github-to-sops import-keys  > .sops.yaml
 ```
-
-or import user list from a github project
-```bash
-./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops > .sops.yaml
+of if your repo isn't published to github or you aren't working inside a git checkout
+```
+./github-to-sops import-keys  --github-url https://github.com/tarasglek/chatcraft.org
 ```
 lets see
 ```bash
@@ -105,58 +103,30 @@ dontlook
 
 #### Bulk-updating secrets+keys when someone is added/removed from project
 
-First command pulls the latest set of keys from people in github, the second re-encrypts. Note you need to be able to decrypt keys yourself using `sops -d` command above as a prereq.
 ```bash
-fdfind -H  .sops.yaml$|xargs -n1 github-to-sops --local-github-checkout . --key-types ssh-ed25519  --inplace-edit 
-fdfind enc.yaml|xargs -n1 sops updatekeys -y
-```
-
-### Misc Examples
-
-Generate keys from a local github checkout and add ssh hosts to it:
-
-```bash
-# note you can also make a "custom" known_hosts with ssh-keyscan 192.168.1.1 > /tmp/known_hosts
-./github-to-sops --local-github-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519
-creation_rules:
-  - key_groups:
-      - age:
-        - age13runq29jhy9kfpaegczrzttykerswh0qprq59msgd754yermtfmsa3hwg2 # tarasglek
-        - age120ld5rvtsuavnlexa2kc7eahrg8egf4gwg22t0q44rcu2z3xegrq4364t4 # 192.168.1.1
-```
-
-For generating ssh authorized_keys:
-
-```bash
-./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIedvn21UgBc1VcasThd+/U84Xfkrw+Ox5RIxufs5tJP humphd
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDzJmAWAOp6fQGs/+v1PT+0dgzG7XHwhJnvF+tL5TwJx tarasglek
+github-to-sops refresh-secrets
 ```
 
 ## Usage:
 ```
 ./github-to-sops -h
-usage: github-to-sops [-h] [--github-url GITHUB_URL | --local-github-checkout LOCAL_GITHUB_CHECKOUT] [--known-hosts KNOWN_HOSTS] [--github-users GITHUB_USERS] [--key-types KEY_TYPES] [--format {authorized_keys,ssh-to-age,sops}]
+usage: github-to-sops [-h] {import-keys,refresh-secrets} ...
 
-Fetch SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys
+Manage GitHub SSH keys and generate SOPS-compatible SSH key files.
 
 options:
   -h, --help            show this help message and exit
-  --github-url GITHUB_URL
-                        GitHub repository URL.
-  --local-github-checkout LOCAL_GITHUB_CHECKOUT
-                        Path to local Git repository.
-  --known-hosts KNOWN_HOSTS
-                        Path to ssh known hosts to also fetch keys from
-  --github-users GITHUB_USERS
-                        Comma-separated list of GitHub usernames to fetch keys for.
-  --key-types KEY_TYPES
-                        Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.
-  --format {authorized_keys,ssh-to-age,sops,json}
-                        Output/convert keys using the specified format. Supported formats: authorized_keys, ssh-to-age, sops. For example, use '--format ssh-to-age' to convert SSH keys to age keys.
 
-Example invocations: `./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops` `./github-to-sops --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys` `./github-to-sops --local-github-
-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519`
+Commands:
+  {import-keys,refresh-secrets}
+    import-keys         Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys
+    refresh-secrets     Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them.
+
+Example invocations:
+- `./github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+- `./github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+- `./github-to-sops import-keys --local-github-checkout . --format sops --known-hosts ~/.ssh/known_hosts --key-types ssh-ed25519`
+- `./github-to-sops refresh-secrets`
 ```
 
 ## Env vars:
