@@ -443,19 +443,19 @@ def main():
 `{sys.argv[0]} import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
 """,
     )
-    generate_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
-    generate_keys_parser.add_argument("--local-github-checkout", help="Path to local Git repository.")
-    generate_keys_parser.add_argument(
+    import_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
+    import_keys_parser.add_argument("--local-github-checkout", help="Path to local Git repository.")
+    import_keys_parser.add_argument(
         "--ssh-hosts",
         type=comma_separated_list,
         help="Comma-separated list of ssh servers to fetch public keys from."
     )
-    generate_keys_parser.add_argument(
+    import_keys_parser.add_argument(
         "--github-users",
         type=comma_separated_list,
         help="Comma-separated list of GitHub usernames to fetch keys for.",
     )
-    generate_keys_parser.add_argument(
+    import_keys_parser.add_argument(
         "--key-types",
         type=comma_separated_list,
         default=None,
@@ -463,7 +463,7 @@ def main():
     )
     # Supported conversions with validation
     supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
-    generate_keys_parser.add_argument(
+    import_keys_parser.add_argument(
         "--format",
         default=supported_conversions[0],
         type=str,
@@ -472,7 +472,7 @@ def main():
         f"{', '.join(supported_conversions)}. For example, use '--format "
         f"ssh-to-age' to convert SSH keys to age keys.",
     )
-    generate_keys_parser.add_argument(
+    import_keys_parser.add_argument(
         "--inplace-edit",
         help="Edit SOPS file in-place. This sets --format to sops",
     )
