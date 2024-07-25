@@ -79,7 +79,7 @@ def is_git_repo(repo_path: str) -> bool:
 def get_api_url_from_git(repo_path: str) -> Optional[str]:
     if not is_git_repo(repo_path):
         raise ValueError(
-            "The provided path is not a git repository. Please provide the --github-url argument."
+            f"The path '{repo_path}' is not a git repository. Please provide the --github-url argument."
         )
     """
     Extract the GitHub API URL from the local git repository using git command.
