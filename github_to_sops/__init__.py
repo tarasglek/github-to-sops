@@ -506,6 +506,10 @@ def generate_keys(args):
     if args.inplace_edit:
         output_fd.close()
         os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
+def get_version():
+    from importlib.metadata import version
+    return version("github_to_sops")
+
 def main():
     parser = argparse.ArgumentParser(
         description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
