@@ -444,7 +444,7 @@ def main():
 """,
     )
     import_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
-    import_keys_parser.add_argument("--local-github-checkout", help="Path to local Git repository.")
+    import_keys_parser.add_argument("--local-github-checkout", default=".", help="Path to local Git repository.")
     import_keys_parser.add_argument(
         "--ssh-hosts",
         type=comma_separated_list,
