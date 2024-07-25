@@ -396,7 +396,7 @@ def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
                         print(f"{key_type} {key} {username}", file=output_fd)
 
 
-def generate_keys():
+def generate_keys(args):
     """
     Main func
     """
@@ -486,7 +486,7 @@ def main():
     args = parser.parse_args()
 
     if args.command == "generate-keys":
-        generate_keys()
+        generate_keys(args)
     else:
         parser.print_help()
 
