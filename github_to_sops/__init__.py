@@ -474,7 +474,7 @@ def main():
     )
     import_keys_parser.add_argument(
         "--inplace-edit",
-        help="Edit SOPS file in-place. This sets --format to sops",
+        help="Edit SOPS file in-place. This takes a .sops.yaml file as input and replaces it. This sets --format to sops",
     )
     import_keys_parser.add_argument(
         "-v",
