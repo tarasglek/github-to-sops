@@ -613,25 +613,48 @@ def main():
     else:
         parser.print_help()
 
-def get_sops_download_url(system, machine):
+def get_goos(system):
     """
-    Returns the download URL for the sops binary based on the system and machine.
+    Returns the GOOS value based on the system.
+
+    :param system: The operating system.
+    :return: The GOOS value.
+    """
+    goos_map = {
+        "Linux": "linux",
+        "Darwin": "darwin"
+    }
+    return goos_map.get(system)
+
+def get_goarch(machine):
+    """
+    Returns the GOARCH value based on the machine.
+
+    :param machine: The machine architecture.
+    :return: The GOARCH value.
+    """
+    goarch_map = {
+        "x86_64": "amd64",
+        "aarch64": "arm64",
+        "arm64": "arm64"
+    }
+    return goarch_map.get(machine)
+
+def get_sops_download_url(system, machine, version="v3.9.0"):
+    """
+    Returns the download URL for the sops binary based on the system, machine, and version.
 
     :param system: The operating system.
     :param machine: The machine architecture.
+    :param version: The version of the sops binary.
     :return: The download URL for the sops binary.
     """
-    base_url = "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0"
-    if system == "Linux":
-        if machine == "x86_64":
-            return f"{base_url}.linux.amd64"
-        elif machine == "aarch64":
-            return f"{base_url}.linux.arm64"
-    elif system == "Darwin":
-        if machine == "x86_64":
-            return f"{base_url}.darwin.amd64"
-        elif machine == "arm64":
-            return f"{base_url}.darwin.arm64"
+    goos = get_goos(system)
+    goarch = get_goarch(machine)
+    if goos and goarch:
+        base_url = f"https://github.com/getsops/sops/releases/download/{version}/sops-{version}"
+        return f"{base_url}.{goos}.{goarch}"
+    return None
     return None
 
 def install_binaries(args):
