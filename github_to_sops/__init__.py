@@ -673,7 +673,7 @@ def install_binaries(args):
             "-v", "/usr/local/bin:/output",
             "golang:latest",
             "sh", "-c",
-            'git clone https://github.com/Mic92/ssh-to-age.git /src && cd /src/cmd/ssh-to-age && go build -v && find /src -type f -name ssh-to-age -exec cp {} /output/ \\;'
+            'git clone https://github.com/Mic92/ssh-to-age.git /src && cd /src/cmd/ssh-to-age && go build && find /src -type f -name ssh-to-age -exec cp {} /output/ \\;'
         ]
         print(f"Executing: {' '.join(docker_command)}")
         subprocess.run(docker_command, check=True)
