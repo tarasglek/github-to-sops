@@ -660,39 +660,32 @@ def get_sops_download_url(system, machine, version="v3.9.0"):
 def install_binaries(args):
     import os
     import platform
-    import tempfile
-    import urllib.request
-    import shutil
+    import subprocess
 
-    def download_binary(url, destination):
-        print(f"Downloading sops binary from {url} to {destination}")
-        with urllib.request.urlopen(url) as response, open(destination, 'wb') as out_file:
-            shutil.copyfileobj(response, out_file)
-        print("Download completed")
+    def run_docker_command(goos, goarch):
+        docker_command = [
+            "docker", "run", "--rm",
+            "-e", f"GOOS={goos}",
+            "-e", f"GOARCH={goarch}",
+            "-v", "/usr/local/bin:/output",
+            "golang:latest",
+            "sh", "-c",
+            'git clone https://github.com/Mic92/ssh-to-age.git /src && cd /src/cmd/ssh-to-age && go build -v && find /src -type f -name ssh-to-age -exec cp {} /output/ \\;'
+        ]
+        print(f"Executing: {' '.join(docker_command)}")
+        subprocess.run(docker_command, check=True)
 
     system = platform.system()
     machine = platform.machine()
-    temp_dir = tempfile.gettempdir()
-    binary_name = "sops"
-    download_url = None
+    goos = get_goos(system)
+    goarch = get_goarch(machine)
 
-    download_url = get_sops_download_url(system, machine)
-
-    if download_url is None:
+    if goos is None or goarch is None:
         print("Not supported on your platform", file=sys.stderr)
         sys.exit(1)
 
-    temp_binary_path = os.path.join(temp_dir, binary_name)
-    download_binary(download_url, temp_binary_path)
-
-    os.chmod(temp_binary_path, 0o755)
-    try:
-        print(f"Executing: sudo mv {temp_binary_path} /usr/local/bin/sops")
-        subprocess.run(["sudo", "mv", temp_binary_path, "/usr/local/bin/sops"], check=True)
-        print("sops binary installed successfully to /usr/local/bin/sops")
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to move sops binary to /usr/local/bin/sops: {e}", file=sys.stderr)
-        sys.exit(1)
+    run_docker_command(goos, goarch)
+    print("ssh-to-age binary installed successfully to /usr/local/bin/ssh-to-age")
 
 parser = argparse.ArgumentParser(
     description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
