@@ -675,7 +675,7 @@ def install_binaries(args):
             "sh", "-c",
             'git clone https://github.com/Mic92/ssh-to-age.git /src && cd /src/cmd/ssh-to-age && go build && find /src -type f -name ssh-to-age -exec cp {} /output/ \\;'
         ]
-        print(f"Executing: {' '.join(docker_command)}")
+        print(f"Executing: {' '.join(f'{arg}' for arg in docker_command)}")
         subprocess.run(docker_command, check=True)
 
     def download_and_install_sops(system, machine):
