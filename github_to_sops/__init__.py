@@ -529,6 +529,19 @@ def main():
         default=argparse.SUPPRESS,
         help="Show this help message and exit."
     )
+
+    subparsers = parser.add_subparsers(dest="command")
+
+    install_binaries_parser = subparsers.add_parser(
+        "install-binaries",
+        help="Install sops binaries for supported platforms (Linux and Mac)."
+    )
+    install_binaries_parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+        action="store_true",
+    )
     subparsers = parser.add_subparsers(dest="command")
 
     refresh_secrets_parser = subparsers.add_parser(
@@ -600,8 +613,202 @@ def main():
     else:
         parser.print_help()
 
+def get_goos(system):
+    """
+    Returns the GOOS value based on the system.
+
+    :param system: The operating system.
+    :return: The GOOS value.
+    """
+    goos_map = {
+        "Linux": "linux",
+        "Darwin": "darwin"
+    }
+    return goos_map.get(system)
+
+def get_goarch(machine):
+    """
+    Returns the GOARCH value based on the machine.
+
+    :param machine: The machine architecture.
+    :return: The GOARCH value.
+    """
+    goarch_map = {
+        "x86_64": "amd64",
+        "aarch64": "arm64",
+        "arm64": "arm64"
+    }
+    return goarch_map.get(machine)
+
+def get_sops_download_url(system, machine, version="v3.9.0"):
+    """
+    Returns the download URL for the sops binary based on the system, machine, and version.
+
+    :param system: The operating system.
+    :param machine: The machine architecture.
+    :param version: The version of the sops binary.
+    :return: The download URL for the sops binary.
+    """
+    goos = get_goos(system)
+    goarch = get_goarch(machine)
+    if goos and goarch:
+        base_url = f"https://github.com/getsops/sops/releases/download/{version}/sops-{version}"
+        return f"{base_url}.{goos}.{goarch}"
+    return None
+    return None
+
+def install_binaries(args):
+    import os
+    import platform
+    import subprocess
+    import tempfile
+    import urllib.request
+    import shutil
+
+    def run_docker_command(goos, goarch):
+        temp_dir = tempfile.gettempdir()
+        temp_output_path = os.path.join(temp_dir, "output")
+        os.makedirs(temp_output_path, exist_ok=True)
+        docker_command = [
+            "docker", "run", "--rm",
+            "-e", f"GOOS={goos}",
+            "-e", f"GOARCH={goarch}",
+            "-v", f"{temp_output_path}:/output",
+            "golang:latest",
+            "sh", "-c",
+            'git clone --branch 1.1.8 https://github.com/Mic92/ssh-to-age.git /src && cd /src/cmd/ssh-to-age && go build && find /src -type f -name ssh-to-age -exec cp {} /output/ \\;'
+        ]
+        print(f"Executing: {' '.join(f'{arg}' for arg in docker_command)}")
+        subprocess.run(docker_command, check=True)
+        temp_binary_path = os.path.join(temp_output_path, "ssh-to-age")
+        try:
+            print(f"Executing: sudo mv {temp_binary_path} /usr/local/bin/ssh-to-age")
+            subprocess.run(["sudo", "mv", temp_binary_path, "/usr/local/bin/ssh-to-age"], check=True)
+            print("ssh-to-age binary installed successfully to /usr/local/bin/ssh-to-age")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to move ssh-to-age binary to /usr/local/bin/ssh-to-age: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def download_and_install_sops(system, machine):
+        download_url = get_sops_download_url(system, machine)
+        if download_url is None:
+            print("Not supported on your platform", file=sys.stderr)
+            sys.exit(1)
+
+        temp_dir = tempfile.gettempdir()
+        binary_name = "sops"
+        temp_binary_path = os.path.join(temp_dir, binary_name)
+
+        print(f"Downloading sops binary from {download_url} to {temp_binary_path}")
+        with urllib.request.urlopen(download_url) as response, open(temp_binary_path, 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+        print("Download completed")
+
+        os.chmod(temp_binary_path, 0o755)
+        try:
+            print(f"Executing: sudo mv {temp_binary_path} /usr/local/bin/sops")
+            subprocess.run(["sudo", "mv", temp_binary_path, "/usr/local/bin/sops"], check=True)
+            print("sops binary installed successfully to /usr/local/bin/sops")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to move sops binary to /usr/local/bin/sops: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    system = platform.system()
+    machine = platform.machine()
+    goos = get_goos(system)
+    goarch = get_goarch(machine)
+
+    if goos is None or goarch is None:
+        print("Not supported on your platform", file=sys.stderr)
+        sys.exit(1)
+
+    run_docker_command(goos, goarch)
+    download_and_install_sops(system, machine)
+
+parser = argparse.ArgumentParser(
+    description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
+    add_help=False
+)
+subparsers = parser.add_subparsers(dest="command")
+
+install_binaries_parser = subparsers.add_parser(
+    "install-binaries",
+    help="Install ssh-to-age, sops binaries for supported platforms (Linux and Mac)."
+)
+install_binaries_parser.add_argument(
+    "-v",
+    "--verbose",
+    help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+    action="store_true",
+)
+
+refresh_secrets_parser = subparsers.add_parser(
+    "refresh-secrets",
+    help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them."
+)
+refresh_secrets_parser.add_argument(
+    "-v",
+    "--verbose",
+    help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+    action="store_true",
+)
+
+import_keys_parser = subparsers.add_parser(
+    "import-keys",
+    help="Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
+    epilog=f"""Example invocations:
+`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+`{sys.argv[0]} import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
+""",
+)
+import_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
+import_keys_parser.add_argument("--local-github-checkout", default=".", help="Path to local Git repository.")
+import_keys_parser.add_argument(
+    "--ssh-hosts",
+    type=comma_separated_list,
+    help="Comma-separated list of ssh servers to fetch public keys from."
+)
+import_keys_parser.add_argument(
+    "--github-users",
+    type=comma_separated_list,
+    help="Comma-separated list of GitHub usernames to fetch keys for.",
+)
+import_keys_parser.add_argument(
+    "--key-types",
+    type=comma_separated_list,
+    default=None,
+    help="Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.",
+)
+# Supported conversions with validation
+supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
+import_keys_parser.add_argument(
+    "--format",
+    default="sops",
+    type=str,
+    choices=supported_conversions,
+    help=f"Output/convert keys using the specified format. Supported formats: "
+    f"{', '.join(supported_conversions)}. For example, use '--format "
+    f"ssh-to-age' to convert SSH keys to age keys.",
+)
+import_keys_parser.add_argument(
+    "--inplace-edit",
+    help="Edit SOPS file in-place. This takes a .sops.yaml file as input and replaces it. This sets --format to sops",
+)
+import_keys_parser.add_argument(
+    "-v",
+    "--verbose",
+    help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+    action="store_true",
+)
+
 if __name__ == "__main__":
-    main()
-def get_version():
-    from importlib.metadata import version
-    return version("github_to_sops")
+    args = parser.parse_args()
+    if args.command == "install-binaries":
+        install_binaries(args)
+    elif args.command == "refresh-secrets":
+        refresh_secrets(args)
+    elif args.command == "import-keys":
+        generate_keys(args)
+    else:
+        parser.print_help()

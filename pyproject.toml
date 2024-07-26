@@ -22,7 +22,6 @@ packages = ["github_to_sops"]
 
 [project.scripts]
 github-to-sops = "github_to_sops.__init__:main"
-generate-keys = "github_to_sops.__init__:generate_keys"
 
 [project.urls]
 Homepage = "https://github.com/tarasglek/github-to-sops"
