@@ -680,6 +680,14 @@ def install_binaries(args):
         ]
         print(f"Executing: {' '.join(f'{arg}' for arg in docker_command)}")
         subprocess.run(docker_command, check=True)
+        temp_binary_path = os.path.join(temp_output_path, "ssh-to-age")
+        try:
+            print(f"Executing: sudo mv {temp_binary_path} /usr/local/bin/ssh-to-age")
+            subprocess.run(["sudo", "mv", temp_binary_path, "/usr/local/bin/ssh-to-age"], check=True)
+            print("ssh-to-age binary installed successfully to /usr/local/bin/ssh-to-age")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to move ssh-to-age binary to /usr/local/bin/ssh-to-age: {e}", file=sys.stderr)
+            sys.exit(1)
 
     def download_and_install_sops(system, machine):
         download_url = get_sops_download_url(system, machine)
