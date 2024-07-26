@@ -723,8 +723,6 @@ def install_binaries(args):
         sys.exit(1)
 
     run_docker_command(goos, goarch)
-    print("ssh-to-age binary installed successfully to /usr/local/bin/ssh-to-age")
-
     download_and_install_sops(system, machine)
 
 parser = argparse.ArgumentParser(
