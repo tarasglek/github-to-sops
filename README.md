@@ -1,4 +1,4 @@
-This script enables one to use github as a trusted public key distribution mechanism. SOPS enables git as a secret vault.
+github-to-sops integrates SOPS with github team/user identities. Use sops + github instead of having to operate Hashicorp Vault, AWS Secret Manager or just stuffing everything into github action secrets, or fighting with GPG.
 
 ## Why?
 
