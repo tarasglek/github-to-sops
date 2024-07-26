@@ -642,8 +642,10 @@ def install_binaries(args):
     import shutil
 
     def download_binary(url, destination):
+        print(f"Downloading sops binary from {url} to {destination}")
         with urllib.request.urlopen(url) as response, open(destination, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
+        print("Download completed")
 
     system = platform.system()
     machine = platform.machine()
@@ -661,8 +663,12 @@ def install_binaries(args):
     download_binary(download_url, temp_binary_path)
 
     os.chmod(temp_binary_path, 0o755)
-    shutil.move(temp_binary_path, "/usr/local/bin/sops")
-    print("sops binary installed successfully to /usr/local/bin/sops")
+    try:
+        subprocess.run(["sudo", "mv", temp_binary_path, "/usr/local/bin/sops"], check=True)
+        print("sops binary installed successfully to /usr/local/bin/sops")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to move sops binary to /usr/local/bin/sops: {e}", file=sys.stderr)
+        sys.exit(1)
 
 parser = argparse.ArgumentParser(
     description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
