@@ -666,11 +666,14 @@ def install_binaries(args):
     import shutil
 
     def run_docker_command(goos, goarch):
+        temp_dir = tempfile.gettempdir()
+        temp_output_path = os.path.join(temp_dir, "output")
+        os.makedirs(temp_output_path, exist_ok=True)
         docker_command = [
             "docker", "run", "--rm",
             "-e", f"GOOS={goos}",
             "-e", f"GOARCH={goarch}",
-            "-v", "/usr/local/bin:/output",
+            "-v", f"{temp_output_path}:/output",
             "golang:latest",
             "sh", "-c",
             'git clone https://github.com/Mic92/ssh-to-age.git /src && cd /src/cmd/ssh-to-age && go build && find /src -type f -name ssh-to-age -exec cp {} /output/ \\;'
