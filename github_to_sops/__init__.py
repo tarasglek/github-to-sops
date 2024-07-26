@@ -530,6 +530,8 @@ def main():
         help="Show this help message and exit."
     )
 
+    subparsers = parser.add_subparsers(dest="command")
+
     install_binaries_parser = subparsers.add_parser(
         "install-binaries",
         help="Install sops binaries for supported platforms (Linux and Mac)."
@@ -649,6 +651,14 @@ def install_binaries(args):
     os.chmod(temp_binary_path, 0o755)
     shutil.move(temp_binary_path, "/usr/local/bin/sops")
     print("sops binary installed successfully to /usr/local/bin/sops")
+
+parser = argparse.ArgumentParser(
+    description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
+    add_help=False
+)
+subparsers = parser.add_subparsers(dest="command")
+
+# Add other parsers here
 
 if __name__ == "__main__":
     args = parser.parse_args()
