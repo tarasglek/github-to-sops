@@ -735,7 +735,7 @@ subparsers = parser.add_subparsers(dest="command")
 
 install_binaries_parser = subparsers.add_parser(
     "install-binaries",
-    help="Install sops binaries for supported platforms (Linux and Mac)."
+    help="Install ssh-to-age, sops binaries for supported platforms (Linux and Mac)."
 )
 install_binaries_parser.add_argument(
     "-v",

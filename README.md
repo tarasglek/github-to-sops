@@ -20,10 +20,9 @@ The latest version of github-to-sops can be cloned locally or installed using pi
 pip install github-to-sops
 ```
 
-On linux you can install sops,ssh-to-age using docker:
+On Mac or Linux you can install sops, ssh-to-age using:
 ```bash
-docker run --rm -v /usr/local/bin:/go/bin golang:latest go install github.com/Mic92/ssh-to-age/cmd/ssh-to-age@latest
-docker run --rm -v /usr/local/bin:/go/bin golang:latest go install github.com/getsops/sops/cmd/sops@v3.8.1
+github-to-sops install-binaries
 ```
 
 ## Implementation
