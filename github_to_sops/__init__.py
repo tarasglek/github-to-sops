@@ -664,6 +664,7 @@ def install_binaries(args):
 
     os.chmod(temp_binary_path, 0o755)
     try:
+        print(f"Executing: sudo mv {temp_binary_path} /usr/local/bin/sops")
         subprocess.run(["sudo", "mv", temp_binary_path, "/usr/local/bin/sops"], check=True)
         print("sops binary installed successfully to /usr/local/bin/sops")
     except subprocess.CalledProcessError as e:
