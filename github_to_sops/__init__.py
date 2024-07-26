@@ -529,6 +529,17 @@ def main():
         default=argparse.SUPPRESS,
         help="Show this help message and exit."
     )
+
+    install_binaries_parser = subparsers.add_parser(
+        "install-binaries",
+        help="Install sops binaries for supported platforms (Linux and Mac)."
+    )
+    install_binaries_parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+        action="store_true",
+    )
     subparsers = parser.add_subparsers(dest="command")
 
     refresh_secrets_parser = subparsers.add_parser(
@@ -600,8 +611,51 @@ def main():
     else:
         parser.print_help()
 
+def install_binaries(args):
+    import os
+    import platform
+    import tempfile
+    import urllib.request
+    import shutil
+
+    def download_binary(url, destination):
+        with urllib.request.urlopen(url) as response, open(destination, 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+
+    system = platform.system()
+    machine = platform.machine()
+    temp_dir = tempfile.gettempdir()
+    binary_name = "sops"
+    download_url = None
+
+    if system == "Linux":
+        if machine == "x86_64":
+            download_url = "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64"
+        elif machine == "aarch64":
+            download_url = "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.arm64"
+    elif system == "Darwin":
+        if machine == "x86_64":
+            download_url = "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.darwin.amd64"
+        elif machine == "arm64":
+            download_url = "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.darwin.arm64"
+
+    if download_url is None:
+        print("Not supported on your platform", file=sys.stderr)
+        sys.exit(1)
+
+    temp_binary_path = os.path.join(temp_dir, binary_name)
+    download_binary(download_url, temp_binary_path)
+
+    os.chmod(temp_binary_path, 0o755)
+    shutil.move(temp_binary_path, "/usr/local/bin/sops")
+    print("sops binary installed successfully to /usr/local/bin/sops")
+
 if __name__ == "__main__":
-    main()
+    args = parser.parse_args()
+    if args.command == "install-binaries":
+        install_binaries(args)
+    else:
+        main()
 def get_version():
     from importlib.metadata import version
     return version("github_to_sops")
