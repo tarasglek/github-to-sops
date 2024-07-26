@@ -661,6 +661,9 @@ def install_binaries(args):
     import os
     import platform
     import subprocess
+    import tempfile
+    import urllib.request
+    import shutil
 
     def run_docker_command(goos, goarch):
         docker_command = [
@@ -675,6 +678,30 @@ def install_binaries(args):
         print(f"Executing: {' '.join(docker_command)}")
         subprocess.run(docker_command, check=True)
 
+    def download_and_install_sops(system, machine):
+        download_url = get_sops_download_url(system, machine)
+        if download_url is None:
+            print("Not supported on your platform", file=sys.stderr)
+            sys.exit(1)
+
+        temp_dir = tempfile.gettempdir()
+        binary_name = "sops"
+        temp_binary_path = os.path.join(temp_dir, binary_name)
+
+        print(f"Downloading sops binary from {download_url} to {temp_binary_path}")
+        with urllib.request.urlopen(download_url) as response, open(temp_binary_path, 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+        print("Download completed")
+
+        os.chmod(temp_binary_path, 0o755)
+        try:
+            print(f"Executing: sudo mv {temp_binary_path} /usr/local/bin/sops")
+            subprocess.run(["sudo", "mv", temp_binary_path, "/usr/local/bin/sops"], check=True)
+            print("sops binary installed successfully to /usr/local/bin/sops")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to move sops binary to /usr/local/bin/sops: {e}", file=sys.stderr)
+            sys.exit(1)
+
     system = platform.system()
     machine = platform.machine()
     goos = get_goos(system)
@@ -686,6 +713,8 @@ def install_binaries(args):
 
     run_docker_command(goos, goarch)
     print("ssh-to-age binary installed successfully to /usr/local/bin/ssh-to-age")
+
+    download_and_install_sops(system, machine)
 
 parser = argparse.ArgumentParser(
     description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
