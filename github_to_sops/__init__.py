@@ -613,6 +613,27 @@ def main():
     else:
         parser.print_help()
 
+def get_sops_download_url(system, machine):
+    """
+    Returns the download URL for the sops binary based on the system and machine.
+
+    :param system: The operating system.
+    :param machine: The machine architecture.
+    :return: The download URL for the sops binary.
+    """
+    base_url = "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0"
+    if system == "Linux":
+        if machine == "x86_64":
+            return f"{base_url}.linux.amd64"
+        elif machine == "aarch64":
+            return f"{base_url}.linux.arm64"
+    elif system == "Darwin":
+        if machine == "x86_64":
+            return f"{base_url}.darwin.amd64"
+        elif machine == "arm64":
+            return f"{base_url}.darwin.arm64"
+    return None
+
 def install_binaries(args):
     import os
     import platform
@@ -730,26 +751,3 @@ if __name__ == "__main__":
         generate_keys(args)
     else:
         parser.print_help()
-def get_version():
-    from importlib.metadata import version
-    return version("github_to_sops")
-def get_sops_download_url(system, machine):
-    """
-    Returns the download URL for the sops binary based on the system and machine.
-
-    :param system: The operating system.
-    :param machine: The machine architecture.
-    :return: The download URL for the sops binary.
-    """
-    base_url = "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0"
-    if system == "Linux":
-        if machine == "x86_64":
-            return f"{base_url}.linux.amd64"
-        elif machine == "aarch64":
-            return f"{base_url}.linux.arm64"
-    elif system == "Darwin":
-        if machine == "x86_64":
-            return f"{base_url}.darwin.amd64"
-        elif machine == "arm64":
-            return f"{base_url}.darwin.arm64"
-    return None
