@@ -513,106 +513,6 @@ def get_version():
     except Exception:
         return "unknown"
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
-        add_help=False
-    )
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {get_version()}" if get_version() != "unknown" else "unknown"
-    )
-    parser.add_argument(
-        "-h", "--help",
-        action="help",
-        default=argparse.SUPPRESS,
-        help="Show this help message and exit."
-    )
-
-    subparsers = parser.add_subparsers(dest="command")
-
-    install_binaries_parser = subparsers.add_parser(
-        "install-binaries",
-        help="Install sops binaries for supported platforms (Linux and Mac)."
-    )
-    install_binaries_parser.add_argument(
-        "-v",
-        "--verbose",
-        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
-        action="store_true",
-    )
-    subparsers = parser.add_subparsers(dest="command")
-
-    refresh_secrets_parser = subparsers.add_parser(
-        "refresh-secrets",
-        help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them."
-    )
-    refresh_secrets_parser.add_argument(
-        "-v",
-        "--verbose",
-        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
-        action="store_true",
-    )
-
-    import_keys_parser = subparsers.add_parser(
-        "import-keys",
-        help="Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
-        epilog=f"""Example invocations:
-`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
-`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-`{sys.argv[0]} import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
-""",
-    )
-    import_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
-    import_keys_parser.add_argument("--local-github-checkout", default=".", help="Path to local Git repository.")
-    import_keys_parser.add_argument(
-        "--ssh-hosts",
-        type=comma_separated_list,
-        help="Comma-separated list of ssh servers to fetch public keys from."
-    )
-    import_keys_parser.add_argument(
-        "--github-users",
-        type=comma_separated_list,
-        help="Comma-separated list of GitHub usernames to fetch keys for.",
-    )
-    import_keys_parser.add_argument(
-        "--key-types",
-        type=comma_separated_list,
-        default=None,
-        help="Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.",
-    )
-    # Supported conversions with validation
-    supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
-    import_keys_parser.add_argument(
-        "--format",
-        default="sops",
-        type=str,
-        choices=supported_conversions,
-        help=f"Output/convert keys using the specified format. Supported formats: "
-        f"{', '.join(supported_conversions)}. For example, use '--format "
-        f"ssh-to-age' to convert SSH keys to age keys.",
-    )
-    import_keys_parser.add_argument(
-        "--inplace-edit",
-        help="Edit SOPS file in-place. This takes a .sops.yaml file as input and replaces it. This sets --format to sops",
-    )
-    import_keys_parser.add_argument(
-        "-v",
-        "--verbose",
-        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
-        action="store_true",
-    )
-
-    args = parser.parse_args()
-
-    if args.command == "import-keys":
-        generate_keys(args)  # Function name remains the same as it handles the logic
-    elif args.command == "refresh-secrets":
-        refresh_secrets(args)
-    else:
-        parser.print_help()
-
 def get_goos(system):
     """
     Returns the GOOS value based on the system.
@@ -725,84 +625,94 @@ def install_binaries(args):
     run_docker_command(goos, goarch)
     download_and_install_sops(system, machine)
 
-parser = argparse.ArgumentParser(
-    description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
-    add_help=False
-)
-subparsers = parser.add_subparsers(dest="command")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
+        add_help=False
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {get_version()}"
+    )
+    parser.add_argument(
+        "-h", "--help",
+        action="help",
+        help="Show this help message and exit."
+    )
+    subparsers = parser.add_subparsers(dest="command")
 
-install_binaries_parser = subparsers.add_parser(
-    "install-binaries",
-    help="Install ssh-to-age, sops binaries for supported platforms (Linux and Mac)."
-)
-install_binaries_parser.add_argument(
-    "-v",
-    "--verbose",
-    help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
-    action="store_true",
-)
+    install_binaries_parser = subparsers.add_parser(
+        "install-binaries",
+        help="Install ssh-to-age, sops binaries for supported platforms (Linux and Mac)."
+    )
+    install_binaries_parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+        action="store_true",
+    )
 
-refresh_secrets_parser = subparsers.add_parser(
-    "refresh-secrets",
-    help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them."
-)
-refresh_secrets_parser.add_argument(
-    "-v",
-    "--verbose",
-    help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
-    action="store_true",
-)
+    refresh_secrets_parser = subparsers.add_parser(
+        "refresh-secrets",
+        help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them."
+    )
+    refresh_secrets_parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+        action="store_true",
+    )
 
-import_keys_parser = subparsers.add_parser(
-    "import-keys",
-    help="Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
-    epilog=f"""Example invocations:
-`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
-`{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-`{sys.argv[0]} import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
-""",
-)
-import_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
-import_keys_parser.add_argument("--local-github-checkout", default=".", help="Path to local Git repository.")
-import_keys_parser.add_argument(
-    "--ssh-hosts",
-    type=comma_separated_list,
-    help="Comma-separated list of ssh servers to fetch public keys from."
-)
-import_keys_parser.add_argument(
-    "--github-users",
-    type=comma_separated_list,
-    help="Comma-separated list of GitHub usernames to fetch keys for.",
-)
-import_keys_parser.add_argument(
-    "--key-types",
-    type=comma_separated_list,
-    default=None,
-    help="Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.",
-)
-# Supported conversions with validation
-supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
-import_keys_parser.add_argument(
-    "--format",
-    default="sops",
-    type=str,
-    choices=supported_conversions,
-    help=f"Output/convert keys using the specified format. Supported formats: "
-    f"{', '.join(supported_conversions)}. For example, use '--format "
-    f"ssh-to-age' to convert SSH keys to age keys.",
-)
-import_keys_parser.add_argument(
-    "--inplace-edit",
-    help="Edit SOPS file in-place. This takes a .sops.yaml file as input and replaces it. This sets --format to sops",
-)
-import_keys_parser.add_argument(
-    "-v",
-    "--verbose",
-    help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
-    action="store_true",
-)
+    import_keys_parser = subparsers.add_parser(
+        "import-keys",
+        help="Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys",
+        epilog=f"""Example invocations:
+    `{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+    `{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+    `{sys.argv[0]} import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
+    """,
+    )
+    import_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
+    import_keys_parser.add_argument("--local-github-checkout", default=".", help="Path to local Git repository.")
+    import_keys_parser.add_argument(
+        "--ssh-hosts",
+        type=comma_separated_list,
+        help="Comma-separated list of ssh servers to fetch public keys from."
+    )
+    import_keys_parser.add_argument(
+        "--github-users",
+        type=comma_separated_list,
+        help="Comma-separated list of GitHub usernames to fetch keys for.",
+    )
+    import_keys_parser.add_argument(
+        "--key-types",
+        type=comma_separated_list,
+        default=None,
+        help="Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.",
+    )
+    # Supported conversions with validation
+    supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
+    import_keys_parser.add_argument(
+        "--format",
+        default="sops",
+        type=str,
+        choices=supported_conversions,
+        help=f"Output/convert keys using the specified format. Supported formats: "
+        f"{', '.join(supported_conversions)}. For example, use '--format "
+        f"ssh-to-age' to convert SSH keys to age keys.",
+    )
+    import_keys_parser.add_argument(
+        "--inplace-edit",
+        help="Edit SOPS file in-place. This takes a .sops.yaml file as input and replaces it. This sets --format to sops",
+    )
+    import_keys_parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
+        action="store_true",
+    )
 
-if __name__ == "__main__":
     args = parser.parse_args()
     if args.command == "install-binaries":
         install_binaries(args)
@@ -812,3 +722,6 @@ if __name__ == "__main__":
         generate_keys(args)
     else:
         parser.print_help()
+
+if __name__ == "__main__":
+    main()
