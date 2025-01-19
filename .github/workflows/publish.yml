@@ -1,8 +1,11 @@
 name: Publish Python Package
 
 on:
-  release:
-    types: [created]
+  push:
+    branches:
+      - main
+    paths:
+      - 'pyproject.toml'
 
 permissions:
   contents: read
