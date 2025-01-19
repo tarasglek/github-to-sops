@@ -116,7 +116,7 @@ github-to-sops refresh-secrets
 ## Usage:
 ```
 ./github-to-sops -h
-usage: github-to-sops [-h] {import-keys,refresh-secrets} ...
+usage: github-to-sops [-h] {import-keys,refresh-secrets,sops} ...
 
 Manage GitHub SSH keys and generate SOPS-compatible SSH key files.
 
@@ -124,7 +124,8 @@ options:
   -h, --help            show this help message and exit
 
 Commands:
-  {import-keys,refresh-secrets}
+  {import-keys,refresh-secrets,sops}
+    sops                Run sops with SOPS_AGE_KEY set from ~/.ssh/id_ed25519
     import-keys         Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys
     refresh-secrets     Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them.
 

@@ -506,6 +506,30 @@ def generate_keys(args):
     if args.inplace_edit:
         output_fd.close()
         os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
+def run_sops():
+    """Run sops with SOPS_AGE_KEY set from ~/.ssh/id_ed25519"""
+    try:
+        # Read SSH private key
+        with open(os.path.expanduser("~/.ssh/id_ed25519"), "r") as key_file:
+            # Convert to AGE key
+            result = subprocess.run(
+                ["ssh-to-age", "-private-key"],
+                stdin=key_file,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True
+            )
+            age_key = result.stdout.strip()
+            
+        # Set environment and exec sops
+        os.environ["SOPS_AGE_KEY"] = age_key
+        os.execvp("sops", sys.argv[2:])
+        
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
 def get_version():
     try:
         from importlib.metadata import version
@@ -626,6 +650,10 @@ def install_binaries(args):
     download_and_install_sops(system, machine)
 
 def main():
+    # Handle sops subcommand before argparse
+    if len(sys.argv) > 1 and sys.argv[1] == "sops":
+        run_sops()
+
     parser = argparse.ArgumentParser(
         description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
         add_help=False
