@@ -594,15 +594,14 @@ def install_binaries(args):
         """Check if a binary is already installed and executable"""
         return shutil.which(name) is not None
 
-    # Check if binaries are already installed
-    if is_binary_installed("sops") and is_binary_installed("ssh-to-age"):
-        print("sops and ssh-to-age are already installed, skipping installation")
-        return
-
     def run_docker_command(goos, goarch):
         if is_binary_installed("ssh-to-age"):
             print("ssh-to-age is already installed, skipping installation")
             return
+
+        if not is_binary_installed("docker"):
+            print("Docker is required to build ssh-to-age but is not available", file=sys.stderr)
+            sys.exit(1)
 
         temp_dir = tempfile.gettempdir()
         temp_output_path = os.path.join(temp_dir, "output")
