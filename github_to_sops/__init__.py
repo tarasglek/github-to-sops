@@ -687,6 +687,22 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command")
 
+    # Add sops subcommand documentation
+    sops_parser = subparsers.add_parser(
+        "sops",
+        help="Run sops with SOPS_AGE_KEY set from ~/.ssh/id_ed25519",
+        description="""Run sops with SOPS_AGE_KEY environment variable set by converting
+        your SSH private key (~/.ssh/id_ed25519) to an AGE key using ssh-to-age.
+        This allows seamless SOPS operations using your existing SSH key.
+        Note: Requires ssh-to-age to be installed.""",
+        add_help=False
+    )
+    sops_parser.add_argument(
+        "-h", "--help",
+        action="help",
+        help="Show this help message and exit."
+    )
+
     install_binaries_parser = subparsers.add_parser(
         "install-binaries",
         help="Install ssh-to-age, sops binaries for supported platforms (Linux and Mac)."
