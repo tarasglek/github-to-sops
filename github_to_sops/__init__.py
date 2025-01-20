@@ -506,6 +506,7 @@ def generate_keys(args):
     if args.inplace_edit:
         output_fd.close()
         os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
+
 def run_sops():
     """Run sops with SOPS_AGE_KEY set from ~/.ssh/id_ed25519"""
     try:
@@ -521,11 +522,11 @@ def run_sops():
                 check=True
             )
             age_key = result.stdout.strip()
-            
+
         # Set environment and exec sops
         os.environ["SOPS_AGE_KEY"] = age_key
         os.execvp("sops", sys.argv[2:])
-        
+
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -667,7 +668,7 @@ def install_binaries(args):
     download_and_install_sops(system, machine)
 
 def main():
-    # Handle sops subcommand before argparse
+    # Handle sops subcommand before argparse, otherwise argparse will make it hard to pass arguments to sops
     if len(sys.argv) > 1 and sys.argv[1] == "sops":
         run_sops()
 
