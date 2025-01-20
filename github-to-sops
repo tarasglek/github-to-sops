@@ -1,0 +1,2 @@
+#!/bin/sh
+./github_to_sops/__init__.py $@

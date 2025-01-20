@@ -2,17 +2,18 @@ github-to-sops integrates SOPS with github team/user identities. Use sops + gith
 
 ## Why?
 
-I needed github-to-sops to make SOPS easier to use for my https://deepstructure.io and https://chatcraft.org projects.
+I think SOPS is the simplest way to manage secrets for team and individual projects, especially when combined with github as a key distribution mechanism.
 
-This makes it easy to setup [SOPS](https://github.com/getsops/sops) as a lightweight gitops alternative to AWS Secrets Manager, AWS KMS, Hashicorp Vault.
+This script makes it easy to setup [SOPS](https://github.com/getsops/sops) as a lightweight gitops alternative to AWS Secrets Manager, AWS KMS, Hashicorp Vault.
 
 SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this term and solution for it) pattern where all secrets for github actions are stored in [Github Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) such that nobody can repro stuff locally. With sops one can give github actions a single age private key and share all the development keys with rest of team on equal footing with CI/CD env.
 
 ## Requirements
 
+* [sops](https://github.com/getsops/sops)
+* https://github.com/Mic92/ssh-to-age/ (until the [SOPS ssh backend](https://github.com/getsops/sops/pull/1134) lands).
 * Python3
 * [pip](https://pip.pypa.io/en/stable/installation/)
-* https://github.com/Mic92/ssh-to-age/ (until the [SOPS ssh backend](https://github.com/getsops/sops/pull/1134) lands).
 
 ## Installation
 The latest version of github-to-sops can be cloned locally or installed using pip:
@@ -49,7 +50,7 @@ I tried to make the code work without github tokens, but github requires them fo
 
 ### Example workflow for secrets with github
 
-Import all public keys for contributors from github project
+Import all public keys for contributors from an existing github project
 ```bash
 ./github-to-sops import-keys  > .sops.yaml
 ```
@@ -92,6 +93,14 @@ sops:
 ^ is safe to commit!
 
 #### Decrypting secrets using ssh keys
+
+Easy way:
+
+```bash
+github-to-sops sops -d secrets.enc.yaml
+```
+
+More complicated details:
 
 ```bash
 export SOPS_AGE_KEY=$(ssh-to-age -private-key < ~/.ssh/id_ed25519)
