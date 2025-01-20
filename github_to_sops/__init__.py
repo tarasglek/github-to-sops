@@ -589,7 +589,20 @@ def install_binaries(args):
     import urllib.request
     import shutil
 
+    def is_binary_installed(name):
+        """Check if a binary is already installed and executable"""
+        return shutil.which(name) is not None
+
+    # Check if binaries are already installed
+    if is_binary_installed("sops") and is_binary_installed("ssh-to-age"):
+        print("sops and ssh-to-age are already installed, skipping installation")
+        return
+
     def run_docker_command(goos, goarch):
+        if is_binary_installed("ssh-to-age"):
+            print("ssh-to-age is already installed, skipping installation")
+            return
+
         temp_dir = tempfile.gettempdir()
         temp_output_path = os.path.join(temp_dir, "output")
         os.makedirs(temp_output_path, exist_ok=True)
@@ -614,6 +627,10 @@ def install_binaries(args):
             sys.exit(1)
 
     def download_and_install_sops(system, machine):
+        if is_binary_installed("sops"):
+            print("sops is already installed, skipping installation")
+            return
+
         download_url = get_sops_download_url(system, machine)
         if download_url is None:
             print("Not supported on your platform", file=sys.stderr)
