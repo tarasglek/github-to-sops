@@ -525,7 +525,9 @@ def run_sops():
 
         # Set environment and exec sops
         os.environ["SOPS_AGE_KEY"] = age_key
-        os.execvp("sops", sys.argv[2:])
+        
+        # Pass through all arguments after 'sops' to the sops command
+        os.execvp("sops", ["sops"] + sys.argv[2:])
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
