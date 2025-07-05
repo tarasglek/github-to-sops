@@ -241,29 +241,6 @@ def fetch_github_ssh_keys(contributors: List[str]) -> Dict[str, Dict[str, List[s
     return keys_by_user_and_type
 
 
-def iterate_keys(
-    keys: dict,
-    accepted_key_types: Optional[Set[str]] = None,
-):
-    """
-    Iterate over keys and yield them in a structured format.
-
-    :param keys: A dictionary of keys, typically from fetch_github_ssh_keys or ssh_keyscan.
-    :param accepted_key_types: A set of SSH key types to include (e.g., {'ssh-ed25519', 'ssh-rsa'}). If None, all key types are included.
-    """
-    for username, user_keys in keys.items():
-        if accepted_key_types is not None:
-            accepted_keys = set(user_keys.keys()).intersection(accepted_key_types)
-        else:
-            accepted_keys = user_keys.keys()
-        if not accepted_keys and accepted_key_types:
-            print(
-                f"User {username} does not have any of the accepted key types: {','.join(list(accepted_key_types))}.",
-                file=sys.stderr,
-            )
-        for key_type in accepted_keys:
-            key = user_keys[key_type]
-            yield {"username": username, "key_type": key_type, "key": key}
 
 def ssh_keyscan(hosts: List[str], parsed_keys: Dict[str, Dict[str, List[str]]] = None) -> Dict[str, Dict[str, List[str]]]:
     """
@@ -324,19 +301,6 @@ def ssh_keyscan(hosts: List[str], parsed_keys: Dict[str, Dict[str, List[str]]] =
         parse_known_hosts_content(known_hosts_log, parsed_keys)
 
     return parsed_keys
-
-def is_tool_available(name):
-    """Check if a tool is available on the system."""
-    try:
-        subprocess.run(
-            [name, "--version"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-        )
-        return True
-    except (OSError, subprocess.CalledProcessError):
-        return False
 
 
 def comma_separated_list(string: str) -> Set[str]:
