@@ -36,7 +36,7 @@ After installing `github-to-sops`, you need to install `sops`.
 
 On Mac or Linux, `github-to-sops` provides a helper command to install `sops` for you:
 ```bash
-github-to-sops install-binaries
+github-to-sops install
 ```
 
 For other platforms or for manual installation, please see the [official sops installation guide](https://github.com/getsops/sops#installing).
@@ -142,7 +142,7 @@ github-to-sops refresh-secrets
 ```
 github-to-sops -h
 usage: github-to-sops [-h] [--version] [--github-users GITHUB_USERS]
-                      {install-binaries,refresh-secrets,import-keys} ...
+                      {install,refresh-secrets,import-keys} ...
 
 Manage GitHub SSH keys and generate SOPS-compatible SSH key files.
 
@@ -155,8 +155,8 @@ options:
                         import-keys and refresh-secrets.
 
 Commands:
-  {install-binaries,refresh-secrets,import-keys}
-    install-binaries    Install sops binary for supported platforms (Linux and
+  {install,refresh-secrets,import-keys}
+    install             Install sops binary for supported platforms (Linux and
                         Mac).
     refresh-secrets     Find all .sops.yaml files in the repo that are
                         managed by git and run `import-keys --inplace-edit
