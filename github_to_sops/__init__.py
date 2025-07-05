@@ -246,10 +246,10 @@ def iterate_keys(
     accepted_key_types: Optional[Set[str]] = None,
 ):
     """
-    Print keys in useful formats
+    Iterate over keys and yield them in a structured format.
 
-    :param key_types: The types of SSH keys to fetch (e.g., ['ssh-ed25519', 'ssh-rsa']) or None for all keys.
-    :param convert_to_age: Whether to convert the keys to age keys.
+    :param keys: A dictionary of keys, typically from fetch_github_ssh_keys or ssh_keyscan.
+    :param accepted_key_types: A set of SSH key types to include (e.g., {'ssh-ed25519', 'ssh-rsa'}). If None, all key types are included.
     """
     for username, user_keys in keys.items():
         if accepted_key_types is not None:
