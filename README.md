@@ -65,7 +65,7 @@ pip install github-to-sops
 
 ## Implementation
 
-This generates a nice .sops.yaml file with comments indicating where the keys came from to make key rotation easier.
+github-to-sops generates and maintains .sops.yaml file with comments indicating where the keys came from. Has refresh-secrets command to pull new secrets and re-encrypt files.
 
 Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 after I got sick of devising a secure secret distribution scheme for every small project.
 
