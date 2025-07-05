@@ -567,7 +567,7 @@ def get_goarch(machine):
     }
     return goarch_map.get(machine)
 
-def get_sops_download_url(system, machine, version="v3.9.0"):
+def get_sops_download_url(system, machine, version="v3.10.2"):
     """
     Returns the download URL for the sops binary based on the system, machine, and version.
 
@@ -582,7 +582,6 @@ def get_sops_download_url(system, machine, version="v3.9.0"):
         base_url = f"https://github.com/getsops/sops/releases/download/{version}/sops-{version}"
         return f"{base_url}.{goos}.{goarch}"
     return None
-    return None
 
 def install_binaries(args):
     import os
@@ -595,38 +594,6 @@ def install_binaries(args):
     def is_binary_installed(name):
         """Check if a binary is already installed and executable"""
         return shutil.which(name) is not None
-
-    def run_docker_command(goos, goarch):
-        if is_binary_installed("ssh-to-age"):
-            print("ssh-to-age is already installed, skipping installation")
-            return
-
-        if not is_binary_installed("docker"):
-            print("Docker is required to build ssh-to-age but is not available", file=sys.stderr)
-            sys.exit(1)
-
-        temp_dir = tempfile.gettempdir()
-        temp_output_path = os.path.join(temp_dir, "output")
-        os.makedirs(temp_output_path, exist_ok=True)
-        docker_command = [
-            "docker", "run", "--rm",
-            "-e", f"GOOS={goos}",
-            "-e", f"GOARCH={goarch}",
-            "-v", f"{temp_output_path}:/output",
-            "golang:latest",
-            "sh", "-c",
-            'git clone --branch 1.1.8 https://github.com/Mic92/ssh-to-age.git /src && cd /src/cmd/ssh-to-age && go build && find /src -type f -name ssh-to-age -exec cp {} /output/ \\;'
-        ]
-        print(f"Executing: {' '.join(f'{arg}' for arg in docker_command)}")
-        subprocess.run(docker_command, check=True)
-        temp_binary_path = os.path.join(temp_output_path, "ssh-to-age")
-        try:
-            print(f"Executing: sudo mv {temp_binary_path} /usr/local/bin/ssh-to-age")
-            subprocess.run(["sudo", "mv", temp_binary_path, "/usr/local/bin/ssh-to-age"], check=True)
-            print("ssh-to-age binary installed successfully to /usr/local/bin/ssh-to-age")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to move ssh-to-age binary to /usr/local/bin/ssh-to-age: {e}", file=sys.stderr)
-            sys.exit(1)
 
     def download_and_install_sops(system, machine):
         if is_binary_installed("sops"):
@@ -658,14 +625,7 @@ def install_binaries(args):
 
     system = platform.system()
     machine = platform.machine()
-    goos = get_goos(system)
-    goarch = get_goarch(machine)
 
-    if goos is None or goarch is None:
-        print("Not supported on your platform", file=sys.stderr)
-        sys.exit(1)
-
-    run_docker_command(goos, goarch)
     download_and_install_sops(system, machine)
 
 def main():
@@ -709,6 +669,7 @@ def main():
         "install-binaries",
         help="Install ssh-to-age, sops binaries for supported platforms (Linux and Mac)."
     )
+    
     install_binaries_parser.add_argument(
         "-v",
         "--verbose",
