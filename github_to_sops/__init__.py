@@ -114,7 +114,7 @@ def get_api_url_from_git(repo_path: str) -> Optional[str]:
     return None
 
 
-def get_api_url(repo_url: Optional[str], local_repo: Optional[str]) -> str:
+def get_api_url(repo_url: Optional[str], local_repo: Optional[str]) -> str|None:
     """
     Determine the GitHub API URL from either a repository URL or a local repository path.
 
@@ -133,9 +133,7 @@ def get_api_url(repo_url: Optional[str], local_repo: Optional[str]) -> str:
             api_url = f"https://{api_url}"
         return api_url
     else:
-        raise ValueError(
-            "Unable to determine the repository URL from the local Git repository."
-        )
+        return None
 
 
 def github_request(request_url: str, method: str = 'GET', data: Optional[dict] = None) -> request.urlopen:
@@ -213,23 +211,6 @@ def fetch_contributors_rest(api_url: str) -> List[str]:
             "For private repositories and to avoid throttling you must set the GITHUB_TOKEN. Alternatively, consider passing users explicitly via --github-users to avoid auth hassles."
         )
         return []
-
-
-def convert_key_to_age(key: str) -> Optional[str]:
-    """
-    Convert an SSH key to an age key using ssh-to-age.
-
-    :param key: The SSH key to convert.
-    :return: The age key or None if conversion fails.
-    """
-    try:
-        result = subprocess.run(
-            ["ssh-to-age"], input=key, stdout=subprocess.PIPE, text=True, check=True
-        )
-        return result.stdout.strip()
-    except Exception as e:
-        print(f"Error running ssh-to-age: {e}", file=sys.stderr)
-    return None
 
 
 def fetch_github_ssh_keys(contributors: List[str]) -> Dict[str, Dict[str, List[str]]]:
@@ -396,18 +377,9 @@ def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
                 if accepted_key_types is not None and key_type not in accepted_key_types:
                     continue
                 for key in user_key_types[key_type]:
-                    if output_format in ["ssh-to-age", "sops"]:
-                        # Assuming convert_key_to_age is a function you have defined elsewhere
-                        print("|print_keys",key_type, key)
-                        key = convert_key_to_age(f"{key_type} {key}")
-                        if not key:
-                            print(
-                                f"Skipped converting {key_type} key for user {username} to age key with ssh-to-age",
-                                file=sys.stderr,
-                            )
-                            continue
+                    if output_format == "sops":
                         if output_format == "sops":
-                            print(f"{line_prefix}- {key} # {username}", file=output_fd)
+                            print(f"{line_prefix}- {key_type} {key} # {username}", file=output_fd)
                         else:
                             print(f"{key}", file=output_fd)
                     else:
@@ -482,16 +454,19 @@ def generate_keys(args):
         args.format = "sops"
         input_template = open(args.inplace_edit, "r").read()
         output_fd = open(args.inplace_edit + ".tmp", "w")
-        if args.key_types is None:
-            args.key_types = set(["ssh-ed25519"])
+    if args.key_types is None:
+        args.key_types = set(["ssh-ed25519", "ssh-rsa"])
 
     api_url = get_api_url(args.github_url, args.local_github_checkout)
+    contributors = None
     if args.github_users:
         contributors = args.github_users
-    else:
+    elif api_url:
         contributors = fetch_contributors(api_url)
 
-    keys = fetch_github_ssh_keys(contributors)
+    keys = dict()
+    if contributors:
+        keys = fetch_github_ssh_keys(contributors)
 
     if args.ssh_hosts:
         keys = ssh_keyscan(args.ssh_hosts, keys)
@@ -506,32 +481,6 @@ def generate_keys(args):
     if args.inplace_edit:
         output_fd.close()
         os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
-
-def run_sops():
-    """Run sops with SOPS_AGE_KEY set from ~/.ssh/id_ed25519"""
-    try:
-        # Read SSH private key
-        with open(os.path.expanduser("~/.ssh/id_ed25519"), "r") as key_file:
-            # Convert to AGE key
-            result = subprocess.run(
-                ["ssh-to-age", "-private-key"],
-                stdin=key_file,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=True
-            )
-            age_key = result.stdout.strip()
-
-        # Set environment and exec sops
-        os.environ["SOPS_AGE_KEY"] = age_key
-        
-        # Pass through all arguments after 'sops' to the sops command
-        os.execvp("sops", ["sops"] + sys.argv[2:])
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
 
 def get_version():
     try:
@@ -630,8 +579,6 @@ def install_binaries(args):
 
 def main():
     # Handle sops subcommand before argparse, otherwise argparse will make it hard to pass arguments to sops
-    if len(sys.argv) > 1 and sys.argv[1] == "sops":
-        run_sops()
 
     parser = argparse.ArgumentParser(
         description="Manage GitHub SSH keys and generate SOPS-compatible SSH key files.",
@@ -700,15 +647,14 @@ def main():
         help="Comma-separated types of SSH keys to fetch (e.g., ssh-ed25519,ssh-rsa). Pass no value for all types.",
     )
     # Supported conversions with validation
-    supported_conversions = ["authorized_keys", "ssh-to-age", "sops"]
+    supported_conversions = ["authorized_keys", "sops"]
     import_keys_parser.add_argument(
         "--format",
         default="sops",
         type=str,
         choices=supported_conversions,
         help=f"Output/convert keys using the specified format. Supported formats: "
-        f"{', '.join(supported_conversions)}. For example, use '--format "
-        f"ssh-to-age' to convert SSH keys to age keys.",
+        f"{', '.join(supported_conversions)}.",
     )
     import_keys_parser.add_argument(
         "--inplace-edit",
