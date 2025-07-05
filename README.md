@@ -16,6 +16,10 @@ SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this
 
 ## Installation
 
+This tool has two parts that need to be installed: `github-to-sops` itself, and `sops`.
+
+### Step 1: Install `github-to-sops`
+
 The preferred way to install `github-to-sops` is with [`uv`](https://github.com/astral-sh/uv), a fast Python package installer:
 ```bash
 uv pip install github-to-sops
@@ -26,10 +30,16 @@ As an alternative to installing, `uv` can also run `github-to-sops` directly. Fo
 uv run github-to-sops -- import-keys > .sops.yaml
 ```
 
-On Mac or Linux you can install sops using:
+### Step 2: Install `sops`
+
+After installing `github-to-sops`, you need to install `sops`.
+
+On Mac or Linux, `github-to-sops` provides a helper command to install `sops` for you:
 ```bash
 github-to-sops install-binaries
 ```
+
+For other platforms or for manual installation, please see the [official sops installation guide](https://github.com/getsops/sops#installing).
 
 ### Development Setup
 
