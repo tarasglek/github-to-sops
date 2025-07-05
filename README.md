@@ -16,16 +16,19 @@ SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this
 
 ## Installation
 
-The preferred way to use `github-to-sops` is with [`uv`](https://github.com/astral-sh/uv), a fast Python package installer which can run the tool without installing it into a global or virtual environment.
+The preferred way to install `github-to-sops` is with [`uv`](https://github.com/astral-sh/uv), a fast Python package installer:
+```bash
+uv pip install github-to-sops
+```
 
-Example usage with `uv`:
+As an alternative to installing, `uv` can also run `github-to-sops` directly. For example:
 ```bash
 uv run github-to-sops -- import-keys > .sops.yaml
 ```
 
 On Mac or Linux you can install sops using:
 ```bash
-uv run github-to-sops -- install-binaries
+github-to-sops install-binaries
 ```
 
 ### Development Setup
@@ -76,11 +79,11 @@ I tried to make the code work without github tokens, but github requires them fo
 
 Import all public keys for contributors from an existing github project
 ```bash
-uv run github-to-sops -- import-keys  > .sops.yaml
+github-to-sops import-keys  > .sops.yaml
 ```
 of if your repo isn't published to github or you aren't working inside a git checkout
 ```bash
-uv run github-to-sops -- import-keys  --github-url https://github.com/tarasglek/chatcraft.org
+github-to-sops import-keys  --github-url https://github.com/tarasglek/chatcraft.org
 ```
 lets see
 ```bash
@@ -122,7 +125,7 @@ sops:
 #### Bulk-updating secrets+keys when someone is added/removed from project
 
 ```bash
-github-to-sops -- refresh-secrets
+github-to-sops refresh-secrets
 ```
 
 ## Usage:
@@ -154,8 +157,8 @@ Commands:
                         useful format like sops or ssh authorized_keys
 
 Example invocations:
-- `github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
-- `github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-- `github-to-sops -- import-keys --local-github-checkout . --format sops --key-types ssh-ed25519`
-- `github-to-sops -- refresh-secrets`
+- `github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+- `github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+- `github-to-sops import-keys --local-github-checkout . --format sops --key-types ssh-ed25519`
+- `github-to-sops refresh-secrets`
 ```
