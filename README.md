@@ -19,6 +19,10 @@ The latest version of github-to-sops can be cloned locally or installed using pi
 ```bash
 pip install github-to-sops
 ```
+Or from a local checkout for development:
+```bash
+pip install -e .
+```
 
 On Mac or Linux you can install sops using:
 ```bash
