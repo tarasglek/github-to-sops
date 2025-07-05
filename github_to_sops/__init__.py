@@ -256,7 +256,7 @@ def iterate_keys(
             accepted_keys = set(user_keys.keys()).intersection(accepted_key_types)
         else:
             accepted_keys = user_keys.keys()
-        if not accepted_keys:
+        if not accepted_keys and accepted_key_types:
             print(
                 f"User {username} does not have any of the accepted key types: {','.join(list(accepted_key_types))}.",
                 file=sys.stderr,
