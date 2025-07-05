@@ -397,13 +397,18 @@ def refresh_secrets(args):
     logging.info(f"Found {len(sops_yaml_files)} .sops.yaml files.")
     for file in sops_yaml_files:
         logging.info(f"Running import-keys --inplace-edit on {file}.")
-        cmd = [sys.argv[0], "import-keys", "--inplace-edit", file]
-        if args.github_users:
-            cmd.extend(["--github-users", ",".join(args.github_users)])
-        subprocess.run(
-            cmd,
-            check=True
+        # We call generate_keys directly instead of using subprocess to avoid argument parsing issues
+        # with global flags like --github-users.
+        import_keys_args = argparse.Namespace(
+            inplace_edit=file,
+            github_users=args.github_users,
+            key_types=None,
+            github_url=None,
+            local_github_checkout=".",
+            ssh_hosts=None,
+            format=None  # Will be set to 'sops' inside generate_keys
         )
+        generate_keys(import_keys_args)
 
     enc_yaml_files = find_enc_yaml_files()
     logging.info(f"Found {len(enc_yaml_files)} *.enc.yaml files.")
