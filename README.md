@@ -15,11 +15,19 @@ SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this
 * [pip](https://pip.pypa.io/en/stable/installation/)
 
 ## Installation
-The latest version of github-to-sops can be cloned locally or installed using pip:
+The latest version of github-to-sops can be installed using pip:
 ```bash
 pip install github-to-sops
 ```
-Or from a local checkout for development:
+
+Or from a local checkout for development. It's recommended to use a Python virtual environment to avoid `externally-managed-environment` errors on modern OSes.
+
+Create and activate a virtual environment:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+Then install in editable mode:
 ```bash
 pip install -e .
 ```
