@@ -397,8 +397,11 @@ def refresh_secrets(args):
     logging.info(f"Found {len(sops_yaml_files)} .sops.yaml files.")
     for file in sops_yaml_files:
         logging.info(f"Running import-keys --inplace-edit on {file}.")
+        cmd = [sys.argv[0], "import-keys", "--inplace-edit", file]
+        if args.github_users:
+            cmd.extend(["--github-users", ",".join(args.github_users)])
         subprocess.run(
-            [sys.argv[0], "import-keys", "--inplace-edit", file],
+            cmd,
             check=True
         )
 
@@ -579,6 +582,11 @@ def main():
         action="help",
         help="Show this help message and exit."
     )
+    parser.add_argument(
+        "--github-users",
+        type=comma_separated_list,
+        help="Comma-separated list of GitHub usernames to fetch keys for. This is a global option that can be used with import-keys and refresh-secrets.",
+    )
     subparsers = parser.add_subparsers(dest="command")
 
     install_binaries_parser = subparsers.add_parser(
@@ -595,7 +603,7 @@ def main():
 
     refresh_secrets_parser = subparsers.add_parser(
         "refresh-secrets",
-        help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them."
+        help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them. Can be combined with --github-users."
     )
     refresh_secrets_parser.add_argument(
         "-v",
@@ -619,11 +627,6 @@ def main():
         "--ssh-hosts",
         type=comma_separated_list,
         help="Comma-separated list of ssh servers to fetch public keys from."
-    )
-    import_keys_parser.add_argument(
-        "--github-users",
-        type=comma_separated_list,
-        help="Comma-separated list of GitHub usernames to fetch keys for.",
     )
     import_keys_parser.add_argument(
         "--key-types",
