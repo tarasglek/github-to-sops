@@ -122,7 +122,7 @@ sops:
 #### Bulk-updating secrets+keys when someone is added/removed from project
 
 ```bash
-uv run github-to-sops -- refresh-secrets
+github-to-sops -- refresh-secrets
 ```
 
 ## Usage:
@@ -154,8 +154,8 @@ Commands:
                         useful format like sops or ssh authorized_keys
 
 Example invocations:
-- `uv run github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
-- `uv run github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-- `uv run github-to-sops -- import-keys --local-github-checkout . --format sops --key-types ssh-ed25519`
-- `uv run github-to-sops -- refresh-secrets`
+- `github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
+- `github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
+- `github-to-sops -- import-keys --local-github-checkout . --format sops --key-types ssh-ed25519`
+- `github-to-sops -- refresh-secrets`
 ```
