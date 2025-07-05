@@ -78,9 +78,10 @@ def is_git_repo(repo_path: str) -> bool:
 
 def get_api_url_from_git(repo_path: str) -> Optional[str]:
     if not is_git_repo(repo_path):
-        raise ValueError(
-            f"The path '{repo_path}' is not a git repository. Please provide the --github-url argument."
+        logging.warning(
+            f"The path '{repo_path}' is not a git repository. Not pulling keys from github."
         )
+        return None
     """
     Extract the GitHub API URL from the local git repository using git command.
 
@@ -97,6 +98,7 @@ def get_api_url_from_git(repo_path: str) -> Optional[str]:
             .decode()
             .strip()
         )
+        logging.info(f"Pulling keys from GitHub repository: {git_url}")
 
         # Transform the git URL to the GitHub API URL
         if git_url.startswith("https://github.com/"):
@@ -108,7 +110,7 @@ def get_api_url_from_git(repo_path: str) -> Optional[str]:
                 "git@github.com:", GITHUB_API_BASE_URL + "/", 1
             ).rstrip(".git")
     except Exception as e:
-        print(f"Unexpected error: {e}", file=sys.stderr)
+        logging.error(f"Unexpected error: {e}")
     return None
 
 
