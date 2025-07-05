@@ -35,7 +35,7 @@ def process_template(template, tag, output_fd):
     3. Detects whitespace on the tag line and stores that as line_prefix
     4. yields it
     5. Finds first line after the tag with a different prefix
-    6. Prints all other lines to console as they are being scanned
+    6. Writes all other lines to the output file descriptor as they are being scanned
     7. Only does it once, e.g., subsequent tag lines will end up with suffix
     8. Yields None if no tag was found
     """
@@ -120,8 +120,7 @@ def get_api_url(repo_url: Optional[str], local_repo: Optional[str]) -> str|None:
 
     :param repo_url: GitHub repository URL.
     :param local_repo: Path to local Git repository.
-    :return: GitHub API URL.
-    :raises ValueError: If neither a repository URL nor a local repository path is provided.
+    :return: GitHub API URL or None if not found.
     """
     api_url = None
     if repo_url:
@@ -158,11 +157,11 @@ def github_request(request_url: str, method: str = 'GET', data: Optional[dict] =
 
 def fetch_contributors(api_url: str) -> List[str]:
     """
-    Fetch the list of contributors for a GitHub repository using GitHub's GraphQL API.
-    If the GraphQL query fails, fallback to the REST API.
+    Fetch the list of collaborators for a GitHub repository using GitHub's GraphQL API.
+    If the GraphQL query fails, fallback to the REST API to fetch contributors.
 
     :param api_url: GitHub API URL for the repository.
-    :return: List of contributor usernames.
+    :return: List of collaborator/contributor usernames.
     """
     graphql_url = "https://api.github.com/graphql"
     owner, repo = api_url.split('/')[-2:]
@@ -215,7 +214,7 @@ def fetch_contributors_rest(api_url: str) -> List[str]:
 
 def fetch_github_ssh_keys(contributors: List[str]) -> Dict[str, Dict[str, List[str]]]:
     """
-    Fetch and output the specified types of SSH keys for a list of GitHub users.
+    Fetch the specified types of SSH keys for a list of GitHub users.
     Store each key type mapping to a list of keys.
 
     :param contributors: List of GitHub usernames.
@@ -352,7 +351,10 @@ def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
 
 def refresh_secrets(args):
     """
-    Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them.
+    Refresh secrets in the repository.
+
+    This function finds all `.sops.yaml` files managed by git and runs `import-keys --inplace-edit` on them.
+    It also finds all `*.enc.yaml` files, and for those containing 'sops:', it runs `sops updatekeys -y`.
     """
     import subprocess
     import os
@@ -412,7 +414,11 @@ def refresh_secrets(args):
 
 def generate_keys(args):
     """
-    Main func
+    Handles the logic for the 'import-keys' command.
+
+    Fetches SSH keys from GitHub contributors, specified users, or SSH hosts,
+    and then prints them in the specified format (e.g., SOPS, authorized_keys).
+    Can also perform in-place edits of SOPS files.
     """
     if args.inplace_edit:
         args.format = "sops"
@@ -447,6 +453,9 @@ def generate_keys(args):
         os.rename(args.inplace_edit + ".tmp", args.inplace_edit)
 
 def get_version():
+    """
+    Get the package version.
+    """
     try:
         from importlib.metadata import version
         return version("github_to_sops")
@@ -497,6 +506,12 @@ def get_sops_download_url(system, machine, version="v3.10.2"):
     return None
 
 def install_binaries(args):
+    """
+    Handles the logic for the 'install-binaries' command.
+
+    Checks if 'sops' is installed, and if not, downloads and installs it
+    for supported platforms (Linux, macOS).
+    """
     import os
     import platform
     import subprocess
@@ -542,6 +557,12 @@ def install_binaries(args):
     download_and_install_sops(system, machine)
 
 def main():
+    """
+    Main entry point for the script.
+
+    Parses command-line arguments and calls the appropriate function
+    based on the specified subcommand (install-binaries, refresh-secrets, import-keys).
+    """
     # Handle sops subcommand before argparse, otherwise argparse will make it hard to pass arguments to sops
 
     parser = argparse.ArgumentParser(
