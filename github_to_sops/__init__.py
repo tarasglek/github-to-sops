@@ -481,9 +481,9 @@ def get_sops_download_url(system, machine, version="v3.10.2"):
         return f"{base_url}.{goos}.{goarch}"
     return None
 
-def install_binaries(args):
+def install(args):
     """
-    Handles the logic for the 'install-binaries' command.
+    Handles the logic for the 'install' command.
 
     Checks if 'sops' is installed, and if not, downloads and installs it
     for supported platforms (Linux, macOS).
@@ -537,7 +537,7 @@ def main():
     Main entry point for the script.
 
     Parses command-line arguments and calls the appropriate function
-    based on the specified subcommand (install-binaries, refresh-secrets, import-keys).
+    based on the specified subcommand (install, refresh-secrets, import-keys).
     """
     # Handle sops subcommand before argparse, otherwise argparse will make it hard to pass arguments to sops
 
@@ -562,12 +562,12 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    install_binaries_parser = subparsers.add_parser(
-        "install-binaries",
+    install_parser = subparsers.add_parser(
+        "install",
         help="Install sops binary for supported platforms (Linux and Mac)."
     )
     
-    install_binaries_parser.add_argument(
+    install_parser.add_argument(
         "-v",
         "--verbose",
         help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
@@ -631,8 +631,8 @@ def main():
         log_level = logging.DEBUG
     logging.basicConfig(level=log_level, format="%(message)s", stream=sys.stderr)
 
-    if args.command == "install-binaries":
-        install_binaries(args)
+    if args.command == "install":
+        install(args)
     elif args.command == "refresh-secrets":
         refresh_secrets(args)
     elif args.command == "import-keys":
