@@ -1,2 +1,4 @@
 #!/bin/sh
-./github_to_sops/__init__.py $@
+set -e
+SCRIPT_DIR=$(dirname -- "$(readlink -f -- "$0")")
+exec "$SCRIPT_DIR/github_to_sops/__init__.py" "$@"
