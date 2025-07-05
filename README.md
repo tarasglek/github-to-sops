@@ -156,6 +156,6 @@ Commands:
 Example invocations:
 - `uv run github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
 - `uv run github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-- `uv run github-to-sops -- import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
+- `uv run github-to-sops -- import-keys --local-github-checkout . --format sops --key-types ssh-ed25519`
 - `uv run github-to-sops -- refresh-secrets`
 ```
