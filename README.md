@@ -128,19 +128,30 @@ uv run github-to-sops -- refresh-secrets
 ## Usage:
 ```
 github-to-sops -h
-usage: github-to-sops [-h] [--version] {install-binaries,refresh-secrets,import-keys} ...
+usage: github-to-sops [-h] [--version] [--github-users GITHUB_USERS]
+                      {install-binaries,refresh-secrets,import-keys} ...
 
 Manage GitHub SSH keys and generate SOPS-compatible SSH key files.
 
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
+  --github-users GITHUB_USERS
+                        Comma-separated list of GitHub usernames to fetch keys
+                        for. This is a global option that can be used with
+                        import-keys and refresh-secrets.
 
 Commands:
   {install-binaries,refresh-secrets,import-keys}
-    install-binaries    Install sops binary for supported platforms (Linux and Mac).
-    refresh-secrets     Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them.
-    import-keys         Import SSH keys of GitHub repository contributors or specified github users and output that info into a useful format like sops or ssh authorized_keys
+    install-binaries    Install sops binary for supported platforms (Linux and
+                        Mac).
+    refresh-secrets     Find all .sops.yaml files in the repo that are
+                        managed by git and run `import-keys --inplace-edit
+                        .sops.yaml` on them. Can be combined with
+                        --github-users.
+    import-keys         Import SSH keys of GitHub repository contributors or
+                        specified github users and output that info into a
+                        useful format like sops or ssh authorized_keys
 
 Example invocations:
 - `uv run github-to-sops -- import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
