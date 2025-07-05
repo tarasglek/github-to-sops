@@ -242,66 +242,6 @@ def fetch_github_ssh_keys(contributors: List[str]) -> Dict[str, Dict[str, List[s
 
 
 
-def ssh_keyscan(hosts: List[str], parsed_keys: Dict[str, Dict[str, List[str]]] = None) -> Dict[str, Dict[str, List[str]]]:
-    """
-    Perform an SSH key scan for a list of hosts and parse the known hosts content.
-
-    :param hosts: A list of hostnames or IP addresses to scan.
-    :param parsed_keys: An optional dictionary to which the scan results will be added.
-                        If not provided, a new dictionary will be created.
-    :return: A dictionary mapping each host to a dictionary of key types and their keys.
-             Each key type maps to a list of keys to accommodate multiple keys of the same type.
-    """
-    if parsed_keys is None:
-        parsed_keys = {}
-
-    def ssh_keyscan_inner(host: str) -> str:
-        """
-        Run the ssh-keyscan command for a single host and return its output.
-
-        :param host: The hostname or IP address to scan.
-        :return: The stdout from the ssh-keyscan command.
-        :raises Exception: If ssh-keyscan fails.
-        """
-        try:
-            result = subprocess.run(
-                ["ssh-keyscan", host],
-                check=True,
-                stdout=subprocess.PIPE,
-                text=True
-            )
-            return result.stdout
-        except subprocess.CalledProcessError as e:
-            raise Exception(f"ssh-keyscan failed with exit code {e.returncode}: {e.stderr}")
-
-    def parse_known_hosts_content(known_hosts: str, parsed_keys: Dict[str, Dict[str, List[str]]]):
-        """
-        Parse the content of known hosts and update the parsed_keys dictionary.
-
-        :param known_hosts: The stdout from the ssh-keyscan command.
-        :param parsed_keys: The dictionary to which the scan results will be added.
-        """
-        for line in known_hosts.splitlines():
-            if line.startswith("#") or line.strip() == "":
-                continue
-
-            parts = line.strip().split()
-            if len(parts) < 3:
-                continue
-
-            host, key_type, key = parts[0], parts[1], parts[2]
-            if host not in parsed_keys:
-                parsed_keys[host] = {}
-            if key_type not in parsed_keys[host]:
-                parsed_keys[host][key_type] = []
-            parsed_keys[host][key_type].append(key)
-
-    for host in hosts:
-        known_hosts_log = ssh_keyscan_inner(host)
-        parse_known_hosts_content(known_hosts_log, parsed_keys)
-
-    return parsed_keys
-
 
 def comma_separated_list(string: str) -> Set[str]:
     """
@@ -452,7 +392,7 @@ def generate_keys(args):
     """
     Handles the logic for the 'import-keys' command.
 
-    Fetches SSH keys from GitHub contributors, specified users, or SSH hosts,
+    Fetches SSH keys from GitHub contributors or specified users,
     and then prints them in the specified format (e.g., SOPS, authorized_keys).
     Can also perform in-place edits of SOPS files.
     """
@@ -476,9 +416,6 @@ def generate_keys(args):
     keys = dict()
     if contributors:
         keys = fetch_github_ssh_keys(contributors)
-
-    if args.ssh_hosts:
-        keys = ssh_keyscan(args.ssh_hosts, keys)
 
     print_keys(
         template=input_template.strip() if args.inplace_edit and args.format == "sops" else SOPS_TEMPLATE if args.format == "sops" else "",
@@ -654,16 +591,11 @@ def main():
         epilog=f"""Example invocations:
     `{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
     `{sys.argv[0]} import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
-    `{sys.argv[0]} import-keys --local-github-checkout . --format sops --ssh-hosts 192.168.1.1,192.168.1.2 --key-types ssh-ed25519`
+    `{sys.argv[0]} import-keys --local-github-checkout . --format sops --key-types ssh-ed25519`
     """,
     )
     import_keys_parser.add_argument("--github-url", help="GitHub repository URL.")
     import_keys_parser.add_argument("--local-github-checkout", default=".", help="Path to local Git repository.")
-    import_keys_parser.add_argument(
-        "--ssh-hosts",
-        type=comma_separated_list,
-        help="Comma-separated list of ssh servers to fetch public keys from."
-    )
     import_keys_parser.add_argument(
         "--key-types",
         type=comma_separated_list,
