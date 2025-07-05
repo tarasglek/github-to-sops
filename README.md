@@ -28,25 +28,26 @@ On Mac or Linux you can install sops using:
 uv run github-to-sops -- install-binaries
 ```
 
-### Alternative: Traditional Installation
+### Development Setup
 
-If you prefer not to use `uv`, you can install `github-to-sops` using `pip`.
-
-The latest version can be installed using pip:
-```bash
-pip install github-to-sops
-```
-
-Or from a local checkout for development. It's recommended to use a Python virtual environment to avoid `externally-managed-environment` errors on modern OSes.
+For development on a local checkout, use `uv` to create a virtual environment and install in editable mode.
+This avoids `externally-managed-environment` errors on modern OSes.
 
 Create and activate a virtual environment:
 ```bash
-python3 -m venv .venv
+uv venv
 source .venv/bin/activate
 ```
 Then install in editable mode:
 ```bash
-pip install -e .
+uv pip install -e .
+```
+
+### Alternative: pip Installation
+
+If you prefer not to use `uv`, you can install `github-to-sops` using `pip`:
+```bash
+pip install github-to-sops
 ```
 
 ## Implementation
