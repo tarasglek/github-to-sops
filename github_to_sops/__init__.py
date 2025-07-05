@@ -366,8 +366,8 @@ def extract_generation_command(file_path: str) -> Optional[List[str]]:
                         # to ensure we call the right function for generation logic.
                         # This handles the case where a refresh command was used previously.
                         parts = shlex.split(command_str)
-                        if len(parts) > 1 and parts[1] == 'refresh-secrets':
-                            parts[1] = 'import-keys'
+                        # Replace 'refresh-secrets' with 'import-keys' to ensure we call the right function.
+                        parts = ['import-keys' if part == 'refresh-secrets' else part for part in parts]
                         return parts
     except FileNotFoundError:
         return None
