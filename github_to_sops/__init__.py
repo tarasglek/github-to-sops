@@ -396,6 +396,7 @@ def print_keys(template: str, user_keys: Dict[str, Dict[str, List[str]]],
                 for key in user_key_types[key_type]:
                     if output_format in ["ssh-to-age", "sops"]:
                         # Assuming convert_key_to_age is a function you have defined elsewhere
+                        print("|print_keys",key_type, key)
                         key = convert_key_to_age(f"{key_type} {key}")
                         if not key:
                             print(
@@ -649,25 +650,9 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    # Add sops subcommand documentation
-    sops_parser = subparsers.add_parser(
-        "sops",
-        help="Run sops with SOPS_AGE_KEY set from ~/.ssh/id_ed25519",
-        description="""Run sops with SOPS_AGE_KEY environment variable set by converting
-        your SSH private key (~/.ssh/id_ed25519) to an AGE key using ssh-to-age.
-        This allows seamless SOPS operations using your existing SSH key.
-        Note: Requires ssh-to-age to be installed.""",
-        add_help=False
-    )
-    sops_parser.add_argument(
-        "-h", "--help",
-        action="help",
-        help="Show this help message and exit."
-    )
-
     install_binaries_parser = subparsers.add_parser(
         "install-binaries",
-        help="Install ssh-to-age, sops binaries for supported platforms (Linux and Mac)."
+        help="Install sops binary for supported platforms (Linux and Mac)."
     )
     
     install_binaries_parser.add_argument(
