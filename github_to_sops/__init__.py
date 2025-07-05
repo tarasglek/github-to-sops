@@ -422,9 +422,6 @@ def refresh_secrets(args):
     import os
     import logging
 
-    # Configure logging to output to stderr
-    logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stderr)
-
     def find_sops_yaml_files():
         """
         Find all .sops.yaml files in the repo that are managed by git.
@@ -725,6 +722,13 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Configure logging
+    log_level = logging.INFO
+    if hasattr(args, "verbose") and args.verbose:
+        log_level = logging.DEBUG
+    logging.basicConfig(level=log_level, format="%(message)s", stream=sys.stderr)
+
     if args.command == "install-binaries":
         install_binaries(args)
     elif args.command == "refresh-secrets":
