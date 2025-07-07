@@ -316,10 +316,11 @@ def extract_generation_command(file_path: str) -> Optional[List[str]]:
 
 def updatekeys(args):
     """
-    Pulls updated public keys for all team members from GitHub, updates the
-    .sops.yaml file(s), and then refreshes all sops-managed files with the new
-    keys. This is useful when a team member is added to or removed from the
-    project, or when a team member adds or removes keys.
+    Pulls updated public keys for all team members from GitHub, updates all
+    .sops.yaml files, and then refreshes all *.enc.yaml, *.enc.json, and
+    *.enc.env files with the new keys. This is useful when a team member is
+    added to or removed from the project, or when a team member adds or
+    removes keys.
     """
     import subprocess
     import os
@@ -576,7 +577,7 @@ def main():
 
     updatekeys_parser = subparsers.add_parser(
         "updatekeys",
-        help="Update team keys from GitHub and re-encrypt secrets. Useful when team members or their keys change."
+        help="Update team keys and re-encrypt all .sops.yaml and *.enc.{json,yaml,env} files."
     )
     updatekeys_parser.add_argument(
         "-v",
