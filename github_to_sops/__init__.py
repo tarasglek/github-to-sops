@@ -316,10 +316,10 @@ def extract_generation_command(file_path: str) -> Optional[List[str]]:
 
 def updatekeys(args):
     """
-    Update keys in the repository.
-
-    This function finds all `.sops.yaml` files managed by git and runs `import-keys --inplace-edit` on them.
-    It also finds all `*.enc.yaml`, `*.enc.json`, and `*.enc.env` files, and for those containing 'sops:', it runs `sops updatekeys -y`.
+    Pulls updated public keys for all team members from GitHub, updates the
+    .sops.yaml file(s), and then refreshes all sops-managed files with the new
+    keys. This is useful when a team member is added to or removed from the
+    project, or when a team member adds or removes keys.
     """
     import subprocess
     import os
@@ -576,7 +576,7 @@ def main():
 
     updatekeys_parser = subparsers.add_parser(
         "updatekeys",
-        help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them. Can be combined with --github-users."
+        help="Update team keys from GitHub and re-encrypt secrets. Useful when team members or their keys change."
     )
     updatekeys_parser.add_argument(
         "-v",
