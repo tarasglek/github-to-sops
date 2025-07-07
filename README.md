@@ -134,7 +134,7 @@ sops:
 
 #### Bulk-updating secrets+keys when someone is added/removed from project
 
-The `updatekeys` command pulls updated public keys for all team members from GitHub, updates the `.sops.yaml` file, and then refreshes all sops-managed files with the new keys. This is useful when a team member is added to or removed from the project, or when a team member adds or removes keys.
+The `updatekeys` command pulls updated public keys for all team members from GitHub, updates all `.sops.yaml` files, and then refreshes all `*.enc.yaml`, `*.enc.json`, and `*.enc.env` files with the new keys. This is useful when a team member is added to or removed from the project, or when a team member adds or removes keys.
 
 ```bash
 github-to-sops updatekeys
@@ -160,10 +160,8 @@ Commands:
   {install,updatekeys,import-keys}
     install             Install sops binary for supported platforms (Linux and
                         Mac).
-    updatekeys          Find all .sops.yaml files in the repo that are
-                        managed by git and run `import-keys --inplace-edit
-                        .sops.yaml` on them. Can be combined with
-                        --github-users.
+    updatekeys          Update team keys and re-encrypt all .sops.yaml and
+                        *.enc.{json,yaml,env} files.
     import-keys         Import SSH keys of GitHub repository contributors or
                         specified github users and output that info into a
                         useful format like sops or ssh authorized_keys
