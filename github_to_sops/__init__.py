@@ -319,7 +319,7 @@ def refresh_secrets(args):
     Refresh secrets in the repository.
 
     This function finds all `.sops.yaml` files managed by git and runs `import-keys --inplace-edit` on them.
-    It also finds all `*.enc.yaml` files, and for those containing 'sops:', it runs `sops updatekeys -y`.
+    It also finds all `*.enc.yaml`, `*.enc.json`, and `*.enc.env` files, and for those containing 'sops:', it runs `sops updatekeys -y`.
     """
     import subprocess
     import os
@@ -338,13 +338,13 @@ def refresh_secrets(args):
         )
         return result.stdout.splitlines()
 
-    def find_enc_yaml_files():
+    def find_enc_files():
         """
-        Find all *.enc.yaml files in the repo that are managed by git.
+        Find all *.enc.{yaml,json,env} files in the repo that are managed by git.
         """
-        logging.info("Finding *.enc.yaml files in the repo managed by git.")
+        logging.info("Finding *.enc.{yaml,json,env} files in the repo managed by git.")
         result = subprocess.run(
-            ["git", "ls-files", "*.enc.yaml"],
+            ["git", "ls-files", "*.enc.yaml", "*.enc.json", "*.enc.env"],
             stdout=subprocess.PIPE,
             text=True,
             check=True
@@ -378,9 +378,9 @@ def refresh_secrets(args):
             check=True
         )
 
-    enc_yaml_files = find_enc_yaml_files()
-    logging.info(f"Found {len(enc_yaml_files)} *.enc.yaml files.")
-    for file in enc_yaml_files:
+    enc_files = find_enc_files()
+    logging.info(f"Found {len(enc_files)} encrypted files.")
+    for file in enc_files:
         if file_contains_sops(file):
             logging.info(f"Running sops updatekeys -y on {file}.")
             subprocess.run(
