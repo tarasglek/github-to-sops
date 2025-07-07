@@ -1,4 +1,4 @@
-github-to-sops integrates SOPS with github team/user identities. Use sops + github instead of having to operate Hashicorp Vault, AWS Secret Manager or just stuffing everything into github action secrets, or fighting with GPG.
+github-to-sops integrates SOPS for secret management with github team/user identities. Use sops + github instead of having to operate Hashicorp Vault, AWS Secret Manager or click-managing github action secrets or fighting with GPG.
 
 ## Why?
 
@@ -6,7 +6,9 @@ I think SOPS is the simplest way to manage secrets for team and individual proje
 
 This script makes it easy to setup [SOPS](https://github.com/getsops/sops) as a lightweight gitops alternative to AWS Secrets Manager, AWS KMS, Hashicorp Vault.
 
-SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this term and solution for it) pattern where all secrets for github actions are stored in [Github Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) such that nobody can repro stuff locally. With sops one can give github actions a single age private key and share all the development keys with rest of team on equal footing with CI/CD env.
+SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this term and solution for it) pattern where all secrets for github actions are stored in [Github Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) such that nobody can repro stuff locally. With sops one can give github actions a single age private key and share all the development keys with rest of team on equal footing with CI/CD env. 
+
+Even though this github-to-sops implementation focuses on github it should be considered as part of a wider secrets-as-code (secrets-in-git + ssh&[age](https://github.com/FiloSottile/age)) design pattern. It can be generalized for managing encrypted secrets in databases, hosting providers, logs, etc.
 
 ## Requirements
 
