@@ -356,7 +356,7 @@ def refresh_secrets(args):
         Check if the file contains 'sops:' in its content.
         """
         with open(file_path, 'r') as file:
-            return 'sops:' in file.read()
+            return 'sops' in file.read()
 
     sops_yaml_files = find_sops_yaml_files()
     logging.info(f"Found {len(sops_yaml_files)} .sops.yaml files.")
