@@ -8,7 +8,7 @@ This script makes it easy to setup [SOPS](https://github.com/getsops/sops) as a 
 
 SOPS is helpful to avoid the push-and-pray (https://dagger.io/ came up with this term and solution for it) pattern where all secrets for github actions are stored in [Github Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) such that nobody can repro stuff locally. With sops one can give github actions a single age private key and share all the development keys with rest of team on equal footing with CI/CD env. 
 
-Even though this github-to-sops implementation focuses on github it should be considered as part of a wider secrets-as-code (secrets-in-git + ssh&[age](https://github.com/FiloSottile/age)) design pattern. It can be generalized for managing encrypted secrets in databases, hosting providers, logs, etc.
+Even though this github-to-sops implementation focuses on github it should be considered as part of a wider [secrets-as-code](https://taras.glek.net/posts/secrets-as-code/) (secrets-in-git + ssh&[age](https://github.com/FiloSottile/age)) design pattern. It can be generalized for managing encrypted secrets in databases, hosting providers, logs, etc.
 
 ## Requirements
 
