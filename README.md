@@ -134,7 +134,7 @@ sops:
 
 #### Bulk-updating secrets+keys when someone is added/removed from project
 
-The `refresh-secrets` command pulls updated public keys for all team members from GitHub, updates the `.sops.yaml` file, and then refreshes all sops-managed files with the new keys. This is useful when a team member is added to or removed from the project.
+The `refresh-secrets` command pulls updated public keys for all team members from GitHub, updates the `.sops.yaml` file, and then refreshes all sops-managed files with the new keys. This is useful when a team member is added to or removed from the project, or when a team member adds or removes keys.
 
 ```bash
 github-to-sops refresh-secrets
