@@ -302,21 +302,21 @@ def extract_generation_command(file_path: str) -> Optional[List[str]]:
                     match = re.search(r'`([^`]+)`', line)
                     if match:
                         command_str = match.group(1)
-                        # Replace the command name if it was 'refresh-secrets' with 'import-keys'
+                        # Replace the command name if it was 'updatekeys' or 'refresh-secrets' with 'import-keys'
                         # to ensure we call the right function for generation logic.
                         # This handles the case where a refresh command was used previously.
                         parts = shlex.split(command_str)
-                        # Replace 'refresh-secrets' with 'import-keys' to ensure we call the right function.
-                        parts = ['import-keys' if part == 'refresh-secrets' else part for part in parts]
+                        # Replace 'updatekeys' or 'refresh-secrets' with 'import-keys' to ensure we call the right function.
+                        parts = ['import-keys' if part in ('refresh-secrets', 'updatekeys') else part for part in parts]
                         return parts
     except FileNotFoundError:
         return None
     return None
 
 
-def refresh_secrets(args):
+def updatekeys(args):
     """
-    Refresh secrets in the repository.
+    Update keys in the repository.
 
     This function finds all `.sops.yaml` files managed by git and runs `import-keys --inplace-edit` on them.
     It also finds all `*.enc.yaml`, `*.enc.json`, and `*.enc.env` files, and for those containing 'sops:', it runs `sops updatekeys -y`.
@@ -558,7 +558,7 @@ def main():
     parser.add_argument(
         "--github-users",
         type=comma_separated_list,
-        help="Comma-separated list of GitHub usernames to fetch keys for. This is a global option that can be used with import-keys and refresh-secrets.",
+        help="Comma-separated list of GitHub usernames to fetch keys for. This is a global option that can be used with import-keys and updatekeys.",
     )
     subparsers = parser.add_subparsers(dest="command")
 
@@ -574,11 +574,11 @@ def main():
         action="store_true",
     )
 
-    refresh_secrets_parser = subparsers.add_parser(
-        "refresh-secrets",
+    updatekeys_parser = subparsers.add_parser(
+        "updatekeys",
         help="Find all .sops.yaml files in the repo that are managed by git and run `import-keys --inplace-edit .sops.yaml` on them. Can be combined with --github-users."
     )
-    refresh_secrets_parser.add_argument(
+    updatekeys_parser.add_argument(
         "-v",
         "--verbose",
         help="Turn on debug logging to see HTTP requests and other internal Python stuff.",
@@ -633,8 +633,8 @@ def main():
 
     if args.command == "install":
         install(args)
-    elif args.command == "refresh-secrets":
-        refresh_secrets(args)
+    elif args.command == "updatekeys":
+        updatekeys(args)
     elif args.command == "import-keys":
         generate_keys(args)
     else:

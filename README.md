@@ -65,7 +65,7 @@ pip install github-to-sops
 
 ## Implementation
 
-github-to-sops generates and maintains .sops.yaml file with comments indicating where the keys came from. Has refresh-secrets command to pull new secrets and re-encrypt files.
+github-to-sops generates and maintains .sops.yaml file with comments indicating where the keys came from. Has updatekeys command to pull new secrets and re-encrypt files.
 
 Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 after I got sick of devising a secure secret distribution scheme for every small project.
 
@@ -134,17 +134,17 @@ sops:
 
 #### Bulk-updating secrets+keys when someone is added/removed from project
 
-The `refresh-secrets` command pulls updated public keys for all team members from GitHub, updates the `.sops.yaml` file, and then refreshes all sops-managed files with the new keys. This is useful when a team member is added to or removed from the project, or when a team member adds or removes keys.
+The `updatekeys` command pulls updated public keys for all team members from GitHub, updates the `.sops.yaml` file, and then refreshes all sops-managed files with the new keys. This is useful when a team member is added to or removed from the project, or when a team member adds or removes keys.
 
 ```bash
-github-to-sops refresh-secrets
+github-to-sops updatekeys
 ```
 
 ## Usage:
 ```
 github-to-sops -h
 usage: github-to-sops [-h] [--version] [--github-users GITHUB_USERS]
-                      {install,refresh-secrets,import-keys} ...
+                      {install,updatekeys,import-keys} ...
 
 Manage GitHub SSH keys and generate SOPS-compatible SSH key files.
 
@@ -154,13 +154,13 @@ options:
   --github-users GITHUB_USERS
                         Comma-separated list of GitHub usernames to fetch keys
                         for. This is a global option that can be used with
-                        import-keys and refresh-secrets.
+                        import-keys and updatekeys.
 
 Commands:
-  {install,refresh-secrets,import-keys}
+  {install,updatekeys,import-keys}
     install             Install sops binary for supported platforms (Linux and
                         Mac).
-    refresh-secrets     Find all .sops.yaml files in the repo that are
+    updatekeys          Find all .sops.yaml files in the repo that are
                         managed by git and run `import-keys --inplace-edit
                         .sops.yaml` on them. Can be combined with
                         --github-users.
@@ -172,5 +172,5 @@ Example invocations:
 - `github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --key-types ssh-ed25519 --format sops`
 - `github-to-sops import-keys --github-url https://github.com/tarasglek/chatcraft.org --format authorized_keys`
 - `github-to-sops import-keys --local-github-checkout . --format sops --key-types ssh-ed25519`
-- `github-to-sops refresh-secrets`
+- `github-to-sops updatekeys`
 ```
