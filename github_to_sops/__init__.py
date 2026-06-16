@@ -40,34 +40,63 @@ def process_template(template, tag, output_fd):
     5. Finds first line after the tag with a different prefix
     6. Writes all other lines to the output file descriptor as they are being scanned
     7. Only does it once, e.g., subsequent tag lines will end up with suffix
-    8. Yields None if no tag was found
+    8. If no tag was found, inserts after the last entry in the first existing age list
+    9. Yields None if no tag or age list was found
     """
     lines = template.split("\n")
-    found_tag = False
-    scan_prefix = None
     tag_pattern = re.compile(r"^\s*")  # Precompile the regex pattern
+    age_entry_pattern = re.compile(r"^(?P<indent>\s*)-\s+age:\s*(?:#.*)?$")
 
-    for line in lines:
-        if not found_tag:
-            if tag in line:
-                found_tag = True
-                # Match only the leading whitespace of the line with the tag
-                match = tag_pattern.match(line)
-                scan_prefix = match.group() if match else ""
-                yield scan_prefix
+    insert_at = None
+    scan_prefix = None
+    replace_existing = False
+
+    for index, line in enumerate(lines):
+        if tag in line:
+            insert_at = index
+            scan_prefix = tag_pattern.match(line).group()
+            replace_existing = True
+            break
+
+    if insert_at is None:
+        for index, line in enumerate(lines):
+            match = age_entry_pattern.match(line)
+            if not match:
                 continue
+
+            age_indent = len(match.group("indent"))
+            recipient_prefix = match.group("indent") + "  - "
+            insert_at = index + 1
+            scan_prefix = match.group("indent") + "  "
+            for scan_at in range(index + 1, len(lines)):
+                current_line = lines[scan_at]
+                current_indent = len(current_line) - len(current_line.lstrip())
+                if current_line.strip() and current_indent <= age_indent:
+                    break
+                if current_line.startswith(recipient_prefix):
+                    insert_at = scan_at + 1
+            break
+
+    if insert_at is None:
+        for line in lines:
             output_fd.write(line + "\n")
-        else:
-            if scan_prefix is not None:
-                # Compute the current line's prefix
-                current_line_prefix = tag_pattern.match(line).group()
-                # Check if the current line's prefix is different from the tag's prefix
-                if current_line_prefix == scan_prefix:
-                    continue
-                scan_prefix = None
-            output_fd.write(line + "\n")
-    if not found_tag:
         yield None
+        return
+
+    for line in lines[:insert_at]:
+        output_fd.write(line + "\n")
+
+    yield scan_prefix
+
+    suffix_start = insert_at + 1 if replace_existing else insert_at
+    while suffix_start < len(lines):
+        current_line_prefix = tag_pattern.match(lines[suffix_start]).group()
+        if not replace_existing or current_line_prefix != scan_prefix:
+            break
+        suffix_start += 1
+
+    for line in lines[suffix_start:]:
+        output_fd.write(line + "\n")
 
 def is_git_repo(repo_path: str) -> bool:
     """

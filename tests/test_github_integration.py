@@ -1,3 +1,4 @@
+import io
 import os
 import platform
 import subprocess
@@ -115,6 +116,33 @@ def test_download_sops_release_assets_verifies_checksum(tmp_path):
     assert os.path.exists(binary_path)
     assert os.path.exists(checksums_path)
     assert github_to_sops.verify_sha256(binary_path, checksums_path, binary_name)
+
+
+def test_inplace_edit_inserts_imported_keys_into_existing_age_group():
+    template = """creation_rules:
+  - path_regex: secrets\\.enc\\.json$
+    key_groups:
+      - age:
+        - age1exampleexistingrecipient # existing server recipient
+"""
+    output = io.StringIO()
+
+    github_to_sops.print_keys(
+        template=template.strip(),
+        user_keys={"alice": {"ssh-ed25519": ["AAAATESTKEY"]}},
+        accepted_key_types={"ssh-ed25519"},
+        output_format="sops",
+        output_fd=output,
+    )
+
+    assert output.getvalue() == """creation_rules:
+  - path_regex: secrets\\.enc\\.json$
+    key_groups:
+      - age:
+        - age1exampleexistingrecipient # existing server recipient
+        # {generated_msg}
+        - ssh-ed25519 AAAATESTKEY # alice
+""".format(generated_msg=github_to_sops.GENERATED_MSG)
 
 
 def test_import_keys_does_not_discover_or_download_sops(monkeypatch):
