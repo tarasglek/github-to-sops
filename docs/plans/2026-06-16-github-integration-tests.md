@@ -1,0 +1,293 @@
+# GitHub Integration Tests Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Add a real integration test that exercises GitHub CLI identity, key import paths, repository collaborator lookup, latest SOPS release lookup, and blocks local pushes when the integration test fails.
+
+**Architecture:** Add `tests/test_github_integration.py` with live tests that intentionally fail if `gh` is missing or unauthenticated. Add a `get_latest_sops_version()` helper used by `install()` so SOPS install uses the current upstream release instead of a stale hardcoded version. Add a committed `.githooks/pre-push` hook that runs the integration test with `uv run --with pytest`.
+
+**Tech Stack:** Python standard library, `pytest` via `uv run --with pytest`, GitHub CLI (`gh`), git pre-push hook.
+
+---
+
+## Design
+
+### Test policy
+
+These are integration tests, not unit tests. They require real network and authenticated `gh`. They must fail hard when prerequisites are missing.
+
+### Behaviors covered
+
+1. Pull current GitHub username from `gh api user --jq .login`.
+2. Fetch public SSH keys for that username through `fetch_github_ssh_keys()`.
+3. Exercise explicit-user CLI path with `--github-users LOGIN`.
+4. Exercise repository collaborator CLI path from the local checkout.
+5. Pull latest SOPS release tag through `gh release view --repo getsops/sops`.
+6. Verify code helper returns the same latest SOPS tag.
+7. Block `git push` locally if these integration tests fail.
+
+---
+
+## Task 1: Add latest SOPS version helper
+
+**Files:**
+- Modify: `github_to_sops/__init__.py`
+
+**Step 1: Write failing test first**
+
+Create `tests/test_github_integration.py` with this initial test:
+
+```python
+import subprocess
+
+import github_to_sops
+
+
+def run_checked(args):
+    return subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+
+def test_latest_sops_version_matches_gh_release_view():
+    result = run_checked([
+        "gh", "release", "view",
+        "--repo", "getsops/sops",
+        "--json", "tagName",
+        "--jq", ".tagName",
+    ])
+    expected = result.stdout.strip()
+
+    assert expected.startswith("v")
+    assert github_to_sops.get_latest_sops_version() == expected
+```
+
+**Step 2: Run and verify failure**
+
+Run:
+
+```bash
+uv run --with pytest pytest -v tests/test_github_integration.py::test_latest_sops_version_matches_gh_release_view
+```
+
+Expected: fail with `AttributeError: module 'github_to_sops' has no attribute 'get_latest_sops_version'`.
+
+**Step 3: Implement helper**
+
+Add to `github_to_sops/__init__.py` near the SOPS install helpers:
+
+```python
+def get_latest_sops_version() -> str:
+    try:
+        result = subprocess.run(
+            [
+                "gh", "release", "view",
+                "--repo", "getsops/sops",
+                "--json", "tagName",
+                "--jq", ".tagName",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+    except FileNotFoundError:
+        print("GitHub CLI `gh` is required to discover the latest sops release. Install gh first.", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to discover latest sops release with gh: {e.stderr.strip()}", file=sys.stderr)
+        sys.exit(1)
+
+    version = result.stdout.strip()
+    if not version.startswith("v"):
+        print(f"Unexpected sops release tag: {version}", file=sys.stderr)
+        sys.exit(1)
+    return version
+```
+
+**Step 4: Update installer to use latest**
+
+In `download_and_install_sops()`, replace:
+
+```python
+version = "v3.10.2"
+```
+
+with:
+
+```python
+version = get_latest_sops_version()
+```
+
+**Step 5: Run test and verify pass**
+
+Run:
+
+```bash
+uv run --with pytest pytest -v tests/test_github_integration.py::test_latest_sops_version_matches_gh_release_view
+```
+
+Expected: pass.
+
+---
+
+## Task 2: Add GitHub identity/key integration tests
+
+**Files:**
+- Modify: `tests/test_github_integration.py`
+
+**Step 1: Add tests**
+
+Extend the file:
+
+```python
+import sys
+
+
+def current_gh_login():
+    result = run_checked(["gh", "api", "user", "--jq", ".login"])
+    login = result.stdout.strip()
+    assert login, "gh returned empty login"
+    return login
+
+
+def has_any_key(user_keys):
+    return any(keys for keys in user_keys.values())
+
+
+def test_current_gh_identity_has_fetchable_public_keys():
+    login = current_gh_login()
+
+    keys = github_to_sops.fetch_github_ssh_keys([login])
+
+    assert login in keys
+    assert has_any_key(keys[login]), f"GitHub user {login} has no public SSH keys"
+
+
+def test_cli_import_keys_for_current_gh_identity():
+    login = current_gh_login()
+
+    result = run_checked([
+        sys.executable,
+        "-m", "github_to_sops",
+        "--github-users", login,
+        "import-keys",
+        "--format", "authorized_keys",
+    ])
+
+    assert "Generated by" in result.stdout
+    assert login in result.stdout
+    assert "ssh-" in result.stdout
+
+
+def test_cli_import_keys_from_repo_collaborators():
+    result = run_checked([
+        sys.executable,
+        "-m", "github_to_sops",
+        "import-keys",
+        "--format", "authorized_keys",
+    ])
+
+    assert "Generated by" in result.stdout
+    assert "ssh-" in result.stdout
+```
+
+**Step 2: Run tests**
+
+Run:
+
+```bash
+uv run --with pytest pytest -v tests/test_github_integration.py
+```
+
+Expected: all pass if `gh` is installed/authenticated and the current GitHub user has at least one public SSH key.
+
+---
+
+## Task 3: Add pre-push hook
+
+**Files:**
+- Create: `.githooks/pre-push`
+
+**Step 1: Create hook**
+
+Write:
+
+```sh
+#!/bin/sh
+set -eu
+
+uv run --with pytest pytest -v tests/test_github_integration.py
+```
+
+**Step 2: Make executable**
+
+Run:
+
+```bash
+chmod +x .githooks/pre-push
+```
+
+**Step 3: Enable hooks locally**
+
+Run:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+**Step 4: Verify hook blocks/passes by running directly**
+
+Run:
+
+```bash
+.githooks/pre-push
+```
+
+Expected: integration tests pass. If `gh` is missing or unauthenticated, this fails and would block push.
+
+---
+
+## Task 4: Verification
+
+**Files:**
+- Check: `github_to_sops/__init__.py`
+- Check: `tests/test_github_integration.py`
+- Check: `.githooks/pre-push`
+
+Run:
+
+```bash
+python3 -m py_compile github_to_sops/__init__.py
+uv run --with pytest pytest -v tests/test_github_integration.py
+.githooks/pre-push
+```
+
+Expected: all pass.
+
+---
+
+## Task 5: Commit and push
+
+**Files:**
+- Add: `tests/test_github_integration.py`
+- Add: `.githooks/pre-push`
+- Add: `docs/plans/2026-06-16-github-integration-tests.md`
+- Modify: `github_to_sops/__init__.py`
+
+**Step 1: Commit**
+
+Run:
+
+```bash
+git add github_to_sops/__init__.py tests/test_github_integration.py .githooks/pre-push docs/plans/2026-06-16-github-integration-tests.md
+git commit -m "test: add GitHub integration coverage"
+```
+
+**Step 2: Push**
+
+Run:
+
+```bash
+git push origin main
+```
+
+Expected: pre-push hook runs and blocks push if integration tests fail.
