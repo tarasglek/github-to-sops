@@ -2,10 +2,8 @@ name: Publish Python Package
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'pyproject.toml'
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
