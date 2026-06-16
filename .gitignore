@@ -5,6 +5,7 @@ __pycache__/
 venv
 .eggs
 .pytest_cache
+uv.lock
 *.egg-info
 .DS_Store
 dist

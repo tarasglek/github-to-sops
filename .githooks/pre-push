@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+uv run --with pytest pytest -v tests/test_github_integration.py
