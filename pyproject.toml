@@ -1,7 +1,7 @@
 [project]
 name = "github-to-sops"
 version = "2.0.0"
-description = "Standalone (no-dependencies beyond Python) script fetches SSH keys of GitHub repository contributors and generates SOPS-compatible SSH key files."
+description = "Standalone script fetches SSH keys of GitHub repository collaborators or specified users and generates SOPS-compatible SSH key files."
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [{ name = "Taras Glek" }]

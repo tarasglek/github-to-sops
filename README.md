@@ -13,6 +13,7 @@ Even though this github-to-sops implementation focuses on github it should be co
 ## Requirements
 
 * [sops](https://github.com/getsops/sops)
+* [GitHub CLI (`gh`)](https://cli.github.com/) for repository collaborator lookup and for the `install` helper. Run `gh auth login` before using repository-based imports. If you pass recipients explicitly with `--github-users`, `gh` is not required for key import, but it is required for `github-to-sops install`.
 * Python3
 * [pip](https://pip.pypa.io/en/stable/installation/)
 
@@ -40,6 +41,8 @@ On Mac or Linux, `github-to-sops` provides a helper command to install `sops` fo
 ```bash
 github-to-sops install
 ```
+
+The install helper uses `gh release download` to fetch `sops` release assets from `getsops/sops`, verifies the binary against the upstream SHA256 checksums file, and then installs it to `/usr/local/bin/sops`.
 
 For other platforms or for manual installation, please see the [official sops installation guide](https://github.com/getsops/sops#installing).
 
@@ -80,16 +83,26 @@ Idea for this originated in https://github.com/tarasglek/chatcraft.org/pull/319 
 
 I wrote an indepth explanation and screencasts on my blog post introducing [github-to-sops](https://taras.glek.net/post/github-to-sops-lighter-weight-secret-management/#heres-how-you-get-started).
 
-## Env vars:
+## GitHub authentication
 
-*  GITHUB_TOKEN: optional github token which helps avoid rate limiting.
+`github-to-sops` uses GitHub collaborators for repository-based imports. It does not use GitHub contributors as secret recipients, because commit authors are not necessarily current trusted repository members.
 
-I tried to make the code work without github tokens, but github requires them for private repos and does aggressive rate-limiting without them. See github docs on how to obtain GITHUB_TOKEN https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+For repository-based imports, install GitHub CLI and authenticate:
+
+```bash
+gh auth login
+```
+
+Alternatively, bypass repository lookup and pass explicit users:
+
+```bash
+github-to-sops --github-users alice,bob import-keys
+```
 
 
 ### Example workflow for secrets with github
 
-Import all public keys for contributors from an existing github project
+Import all public keys for collaborators from an existing github project
 ```bash
 github-to-sops import-keys  > .sops.yaml
 ```
@@ -164,7 +177,7 @@ Commands:
                         Mac).
     updatekeys          Update team keys and re-encrypt all .sops.yaml and
                         *.enc.{json,yaml,env} files.
-    import-keys         Import SSH keys of GitHub repository contributors or
+    import-keys         Import SSH keys of GitHub repository collaborators or
                         specified github users and output that info into a
                         useful format like sops or ssh authorized_keys
 
